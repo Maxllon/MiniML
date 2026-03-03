@@ -1,3 +1,4 @@
-(test
- (name test_token)
- (libraries miniML))
+(subdir token
+  (test
+    (name test_token)
+    (libraries miniML alcotest)))
