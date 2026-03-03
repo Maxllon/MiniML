@@ -80,7 +80,7 @@ let test_keywords () =
   test_token (KEYWORD THEN) "then";
   test_token (KEYWORD ELSE) "else";
   test_token (KEYWORD IN) "in";
-  test_token (KEYWORD LAMBD) "lambd";
+  test_token (KEYWORD LAMBD) "\\x -> x";
   test_token (KEYWORD ARROW) "->";
   test_token (VAR "letx") "letx";
   ()

@@ -52,7 +52,7 @@ let isDigit = function
   | _ -> false
 ;;
 
-let isOp c = String.contains "+-/*=!><&|^" c
+let isOp c = String.contains "\\+-/*=!><&|^" c
 let isBracket c = String.contains "()" c
 let isWordPart c = not (isBracket c || isWhitespace c || isOp c)
 
@@ -63,7 +63,7 @@ let kwFromString = function
   | "then" -> Some THEN
   | "else" -> Some ELSE
   | "in" -> Some IN
-  | "lambd" -> Some LAMBD
+  | "\\" -> Some LAMBD
   | "->" -> Some ARROW
   | _ -> None
 ;;
