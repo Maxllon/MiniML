@@ -17,6 +17,15 @@ let test_correct_expressions () =
     "just 2+2=4"
     (Ok [ INT 2; OPERATOR PLUS; INT 2; OPERATOR EQ; INT 4; EOF ])
     "2+2=4";
+  test_tk_list "Empty input" (Ok [ EOF ]) "";
+  test_tk_list
+    "let expression"
+    (Ok [ KEYWORD LET; VAR "x"; OPERATOR EQ; INT 5; KEYWORD IN; VAR "x"; EOF ])
+    "let x=5in x";
+  test_tk_list
+    "let expression (extra spaces)"
+    (Ok [ KEYWORD LET; VAR "x"; OPERATOR EQ; INT 5; KEYWORD IN; VAR "x"; EOF ])
+    "   let x =  5 in              x   ";
   ()
 ;;
 
