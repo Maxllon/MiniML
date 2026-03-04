@@ -15,6 +15,8 @@ let tokenize input =
       let consume, token = parseToken cut in
       if token = INVALID
       then Error { pos; tk_len = consume; tk = INVALID }
+      else if token = EOF
+      then Ok (List.rev (EOF :: tk_list))
       else loop (pos + consume) (token :: tk_list))
   in
   loop 0 []

@@ -1,4 +1,8 @@
 (subdir token
   (test
-    (name test_token)
+    (name unit)
+    (libraries miniML alcotest)))
+(subdir lexer
+  (test
+    (name unit)
     (libraries miniML alcotest)))
