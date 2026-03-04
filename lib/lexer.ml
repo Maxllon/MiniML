@@ -21,10 +21,6 @@ let tokenize input =
 ;;
 
 let tk_list_to_string tk_list =
-  let rec loop = function
-    | [] -> ""
-    | [ x ] -> tokenToString x
-    | x :: xs -> tokenToString x ^ "; " ^ loop xs
-  in
-  loop tk_list
+  let tk_list_str = List.map Token.tokenToString tk_list in
+  "[" ^ String.concat ";" tk_list_str ^ "]"
 ;;
