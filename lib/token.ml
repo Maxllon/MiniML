@@ -8,10 +8,6 @@ type keyword =
   | LAMBD
   | ARROW
 
-type boolean =
-  | TRUE
-  | FALSE
-
 type bracket =
   | L_PAREN
   | R_PAREN
@@ -37,7 +33,7 @@ type token =
   | INT of int
   | BRACKET of bracket
   | KEYWORD of keyword
-  | BOOLEAN of boolean
+  | BOOLEAN of bool
   | OPERATOR of operator
   | EOF
   | INVALID
@@ -69,8 +65,8 @@ let kwFromString = function
 ;;
 
 let boolFromString = function
-  | "true" -> Some TRUE
-  | "false" -> Some FALSE
+  | "true" -> Some true
+  | "false" -> Some false
   | _ -> None
 ;;
 
@@ -173,8 +169,8 @@ let tokenToString = function
   | KEYWORD IN -> "IN"
   | KEYWORD LAMBD -> "LAMBD"
   | KEYWORD ARROW -> "ARROW"
-  | BOOLEAN TRUE -> "TRUE"
-  | BOOLEAN FALSE -> "FALSE"
+  | BOOLEAN true -> "TRUE"
+  | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"
   | OPERATOR MINUS -> "MINUS"
   | OPERATOR DIV -> "DIV"

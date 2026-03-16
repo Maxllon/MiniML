@@ -56,8 +56,8 @@ let test_keywords () =
 ;;
 
 let test_booleans () =
-  test_token (4, BOOLEAN TRUE) "true";
-  test_token (5, BOOLEAN FALSE) "false";
+  test_token (4, BOOLEAN true) "true";
+  test_token (5, BOOLEAN false) "false";
   test_token (5, VAR "trueh") "trueh"
 ;;
 
