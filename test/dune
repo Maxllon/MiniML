@@ -6,3 +6,7 @@
   (test
     (name unit)
     (libraries miniML alcotest)))
+(subdir parser
+  (test
+    (name unit)
+    (libraries miniML alcotest)))
