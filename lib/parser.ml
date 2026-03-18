@@ -5,7 +5,7 @@ let rec parse tk_list =
   match parse_expr tk_list with
   | Ok (ast, []) -> Ok ast
   | Ok (ast, [ EOF ]) -> Ok ast
-  | Ok (_, rest) -> Error "Extra tokens"
+  | Ok (_, _) -> Error "Extra tokens"
   | Error e -> Error e
 
 and parse_expr tk_list = parse_let tk_list
@@ -22,7 +22,7 @@ and parse_let tk_list =
       (fun (name', expr', in_expr') -> Let (name', expr', in_expr'))
       name
       rest
-  | _ -> parse_if tk_list
+  | _ -> parse_fun tk_list
 
 and parse_let_body constructor name tk_list =
   match parse_expr tk_list with
@@ -162,7 +162,18 @@ and parse_un tk_list =
     (match parse_expr rest with
      | Error e -> Error e
      | Ok (expr, rest') -> Ok (Un_op (Neg, expr), rest'))
-  | _ -> parse_atom tk_list
+  | _ -> parse_app tk_list
+
+and parse_app tk_list =
+  match parse_atom tk_list with
+  | Error e -> Error e
+  | Ok (expr, rest) ->
+    let rec build_app expr' rest' =
+      match parse_atom rest' with
+      | Error _ -> Ok (expr', rest')
+      | Ok (atom, rest'') -> build_app (App (expr', atom)) rest''
+    in
+    build_app expr rest
 
 and parse_atom = function
   | INT n :: rest -> Ok (Int n, rest)
