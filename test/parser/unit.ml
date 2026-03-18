@@ -62,11 +62,33 @@ let test_let () =
   ()
 ;;
 
+let test_fun () =
+  test_parse "basic fun expr" "\\x -> x" "\\x -> x";
+  test_parse "multy vars" "\\x -> \\y -> (x + y)" "\\x y -> (x+y)";
+  ()
+;;
+
+let test_atom () =
+  test_parse "nothing" "" "";
+  test_parse "zero" "0" "0";
+  test_parse "var" "aboba" "aboba";
+  ()
+;;
+
+let test_app () =
+  test_parse "basic app" "(f x)" "f x";
+  test_parse "mult args" "(((f x) y) z)" "f x y z";
+  ()
+;;
+
 let suite =
   [ "precedence", `Quick, test_precedence
   ; "unary", `Quick, test_un
   ; "conditions", `Quick, test_if
   ; "let", `Quick, test_let
+  ; "fun", `Quick, test_fun
+  ; "atom", `Quick, test_atom
+  ; "app", `Quick, test_app
   ]
 ;;
 
