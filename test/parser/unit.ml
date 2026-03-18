@@ -69,7 +69,7 @@ let test_fun () =
 ;;
 
 let test_atom () =
-  test_parse "nothing" "" "";
+  test_parse_error "nothing" "";
   test_parse "zero" "0" "0";
   test_parse "var" "aboba" "aboba";
   ()
