@@ -74,7 +74,18 @@ and parse_if tk_list =
                    Ok (If (cond, then_expr, else_expr), rest'''''))
               | _ -> Error "expected else keyword"))
         | _ -> Error "expected then keyword"))
-  | _ -> parse_or tk_list
+  | _ -> parse_eq tk_list
+
+and parse_eq tk_list =
+  parse_bin
+    parse_or
+    [ EQ; NEQ ]
+    (fun op left right ->
+       match op with
+       | EQ -> Bin_op (Eq, left, right)
+       | NEQ -> Bin_op (Neq, left, right)
+       | _ -> failwith "impossible op in parse_eq")
+    tk_list
 
 and parse_or tk_list =
   parse_bin
@@ -98,23 +109,12 @@ and parse_xor tk_list =
 
 and parse_and tk_list =
   parse_bin
-    parse_eq
+    parse_comp
     [ AND ]
     (fun op left right ->
        match op with
        | AND -> Bin_op (And, left, right)
        | _ -> failwith "impossible op in parse_and")
-    tk_list
-
-and parse_eq tk_list =
-  parse_bin
-    parse_comp
-    [ EQ; NEQ ]
-    (fun op left right ->
-       match op with
-       | EQ -> Bin_op (Eq, left, right)
-       | NEQ -> Bin_op (Neq, left, right)
-       | _ -> failwith "impossible op in parse_eq")
     tk_list
 
 and parse_comp tk_list =
