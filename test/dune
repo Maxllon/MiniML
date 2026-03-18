@@ -1,8 +1,17 @@
-(subdir token
-  (test
-    (name unit)
-    (libraries miniML alcotest)))
-(subdir lexer
-  (test
-    (name unit)
-    (libraries miniML alcotest)))
+(subdir
+ token
+ (test
+  (name unit)
+  (libraries miniML alcotest)))
+
+(subdir
+ lexer
+ (test
+  (name unit)
+  (libraries miniML alcotest)))
+
+(subdir
+ parser
+ (test
+  (name unit)
+  (libraries miniML alcotest)))

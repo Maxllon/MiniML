@@ -3,7 +3,7 @@ open Alcotest
 
 let pp_tk_list fmt = function
   | Ok tk_list -> Format.pp_print_string fmt (Lexer.tk_list_to_string tk_list)
-  | Error e -> Format.pp_print_string fmt "Lexer error"
+  | Error _ -> Format.pp_print_string fmt "Lexer error"
 ;;
 
 let tk_list_testable = testable pp_tk_list ( = )
@@ -26,6 +26,10 @@ let test_correct_expressions () =
     "let expression (extra spaces)"
     (Ok [ KEYWORD LET; VAR "x"; OPERATOR EQ; INT 5; KEYWORD IN; VAR "x"; EOF ])
     "   let x =  5 in              x   ";
+  test_tk_list
+    "fun expr"
+    (Ok [ KEYWORD LAMBD; VAR "x"; KEYWORD ARROW; VAR "x"; EOF ])
+    "\\x->x";
   ()
 ;;
 

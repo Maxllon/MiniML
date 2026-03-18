@@ -8,10 +8,6 @@ type keyword =
   | LAMBD
   | ARROW
 
-type boolean =
-  | TRUE
-  | FALSE
-
 type bracket =
   | L_PAREN
   | R_PAREN
@@ -37,10 +33,10 @@ type token =
   | INT of int
   | BRACKET of bracket
   | KEYWORD of keyword
-  | BOOLEAN of boolean
+  | BOOLEAN of bool
   | OPERATOR of operator
   | EOF
   | INVALID
 
 val parseToken : string -> int * token
-val tokenToString: token -> string
+val tokenToString : token -> string
