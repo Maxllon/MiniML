@@ -155,11 +155,11 @@ and parse_mult tk_list =
 and parse_un tk_list =
   match tk_list with
   | OPERATOR NOT :: rest ->
-    (match parse_expr rest with
+    (match parse_atom rest with
      | Error e -> Error e
      | Ok (expr, rest') -> Ok (Un_op (Not, expr), rest'))
   | OPERATOR MINUS :: rest ->
-    (match parse_expr rest with
+    (match parse_atom rest with
      | Error e -> Error e
      | Ok (expr, rest') -> Ok (Un_op (Neg, expr), rest'))
   | _ -> parse_app tk_list
