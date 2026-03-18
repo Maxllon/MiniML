@@ -37,8 +37,8 @@ let rec expr_to_string = function
     "let " ^ name ^ " = " ^ expr_to_string value ^ " in " ^ expr_to_string body
   | Let_rec (name, value, body) ->
     "let rec " ^ name ^ " = " ^ expr_to_string value ^ " in " ^ expr_to_string body
-  | Lambd (arg, body) -> " " ^ arg ^ " -> " ^ expr_to_string body
-  | App (f, arg) -> "( " ^ expr_to_string f ^ " " ^ expr_to_string arg
+  | Lambd (arg, body) -> "\\" ^ arg ^ " -> " ^ expr_to_string body
+  | App (f, arg) -> "(" ^ expr_to_string f ^ " " ^ expr_to_string arg ^ ")"
   | If (cond, then_body, else_body) ->
     "if "
     ^ expr_to_string cond
