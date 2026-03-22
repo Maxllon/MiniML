@@ -1,4 +1,6 @@
 (executable
  (public_name miniML)
  (name main)
- (libraries miniML))
+ (libraries miniML)
+ (instrumentation
+  (backend bisect_ppx)))

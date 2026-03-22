@@ -36,7 +36,7 @@ jobs:
         run: opam exec -- dune build @all
 
       - name: Run tests
-        run: opam exec -- dune runtest
+        run: opam exec -- dune runtest --instrument-with bisect_ppx
 
   fmt:
     name: Format

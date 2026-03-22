@@ -1,2 +1,4 @@
 (library
- (name miniML))
+ (name miniML)
+ (instrumentation
+  (backend bisect_ppx)))

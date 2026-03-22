@@ -34,18 +34,34 @@ let rec expr_to_string = function
   | Int n -> string_of_int n
   | Bool x -> string_of_bool x
   | Let (name, value, body) ->
-    "let " ^ name ^ " = " ^ expr_to_string value ^ " in " ^ expr_to_string body
+    "("
+    ^ "let "
+    ^ name
+    ^ " = "
+    ^ expr_to_string value
+    ^ " in "
+    ^ expr_to_string body
+    ^ ")"
   | Let_rec (name, value, body) ->
-    "let rec " ^ name ^ " = " ^ expr_to_string value ^ " in " ^ expr_to_string body
-  | Lambd (arg, body) -> "\\" ^ arg ^ " -> " ^ expr_to_string body
+    "("
+    ^ "let rec "
+    ^ name
+    ^ " = "
+    ^ expr_to_string value
+    ^ " in "
+    ^ expr_to_string body
+    ^ ")"
+  | Lambd (arg, body) -> "(" ^ "\\" ^ arg ^ " -> " ^ expr_to_string body ^ ")"
   | App (f, arg) -> "(" ^ expr_to_string f ^ " " ^ expr_to_string arg ^ ")"
   | If (cond, then_body, else_body) ->
-    "if "
+    "("
+    ^ "if "
     ^ expr_to_string cond
     ^ " then "
     ^ expr_to_string then_body
     ^ " else "
     ^ expr_to_string else_body
+    ^ ")"
   | Bin_op (op, left, right) ->
     let string_of_op = function
       | Add -> "+"
