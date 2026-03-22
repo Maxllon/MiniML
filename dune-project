@@ -21,7 +21,9 @@
  (description "A longer description")
  (depends
    ocaml
-   (alcotest :with-test))
+    (alcotest :with-test)
+    (qcheck :with-test)
+    (bisect_ppx :with-test))
  (tags
   ("add topics" "to describe" your project)))
 

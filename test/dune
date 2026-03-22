@@ -2,16 +2,22 @@
  token
  (test
   (name unit)
-  (libraries miniML alcotest)))
+  (libraries miniML alcotest)
+  (instrumentation
+   (backend bisect_ppx))))
 
 (subdir
  lexer
  (test
   (name unit)
-  (libraries miniML alcotest)))
+  (libraries miniML alcotest)
+  (instrumentation
+   (backend bisect_ppx))))
 
 (subdir
  parser
- (test
-  (name unit)
-  (libraries miniML alcotest)))
+ (tests
+  (names unit property)
+  (libraries miniML alcotest qcheck)
+  (instrumentation
+   (backend bisect_ppx))))
