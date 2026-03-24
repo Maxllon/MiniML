@@ -84,5 +84,5 @@ let rec expr_to_string = function
       | Not -> "not"
       | Neg -> "-"
     in
-    string_of_op op ^ "(" ^ expr_to_string expr ^ ")"
+    "(" ^ string_of_op op ^ "(" ^ expr_to_string expr ^ "))"
 ;;
