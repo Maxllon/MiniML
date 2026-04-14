@@ -21,3 +21,6 @@
   (libraries miniML alcotest qcheck)
   (instrumentation
    (backend bisect_ppx))))
+
+(cram
+ (deps %{bin:miniML}))
