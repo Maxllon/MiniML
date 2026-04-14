@@ -13,11 +13,11 @@ let rec repl env =
         | Ok tokens ->
           (match Parser.parse tokens with
            | Error e -> Error e
-           | Ok ast -> Interpretator.eval env ast)
+           | Ok ast -> Interpreter.eval env ast)
       in
       (match result with
        | Error e -> print_endline ("Error: " ^ e)
-       | Ok v -> print_endline (Interpretator.value_to_string v));
+       | Ok v -> print_endline (Interpreter.value_to_string v));
       repl env
   with
   | End_of_file -> print_endline "\nGoodbye!"
