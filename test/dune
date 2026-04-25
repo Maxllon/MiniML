@@ -22,5 +22,7 @@
   (instrumentation
    (backend bisect_ppx))))
 
-(cram
- (deps %{bin:miniML}))
+(subdir
+ interpreter
+ (cram
+  (deps %{bin:miniML})))
