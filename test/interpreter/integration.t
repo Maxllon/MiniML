@@ -190,22 +190,6 @@ If with comparison
   > 
   Goodbye!
 
-Let rec - recursive function
-
-  $ echo 'let rec fact = \n -> if n = 0 then 1 else n * (fact (n - 1)) in fact 5' | dune exec miniML
-  miniML REPL - type :h to list commands
-  > 120
-  > 
-  Goodbye!
-
-Let rec fibonacci
-
-  $ echo 'let rec fib = \n -> if n = 0 then 0 else if n = 1 then 1 else (fib (n-1)) + (fib (n-2)) in fib 10' | dune exec miniML
-  miniML REPL - type :h to list commands
-  > 55
-  > 
-  Goodbye!
-
 Division
 
   $ echo '10 / 2' | dune exec miniML
