@@ -48,9 +48,13 @@ let isDigit = function
   | _ -> false
 ;;
 
+let isIdent = function
+  | 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' -> true
+  | _ -> false
+;;
+
 let isOp c = String.contains "\\+-/*=!><&|^" c
 let isBracket c = String.contains "()" c
-let isWordPart c = not (isBracket c || isWhitespace c || isOp c)
 
 let kwFromString = function
   | "let" -> Some LET
@@ -125,9 +129,7 @@ let parseOp s =
 
 let parseWord s =
   let len = String.length s in
-  let rec findEnd pos =
-    if pos < len && isWordPart s.[pos] then findEnd (pos + 1) else pos
-  in
+  let rec findEnd pos = if pos < len && isIdent s.[pos] then findEnd (pos + 1) else pos in
   let res = findEnd 0 in
   let word = String.sub s 0 res in
   match kwFromString word with
@@ -153,7 +155,8 @@ let rec parseToken s =
     | c when isDigit c -> parseNumber s
     | c when isBracket c -> parseBracket s
     | c when isOp c -> parseOp s
-    | _ -> parseWord s)
+    | c when isIdent c -> parseWord s
+    | _ -> 0, INVALID)
 ;;
 
 let tokenToString = function

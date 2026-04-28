@@ -124,4 +124,11 @@ let test_roundtrip_hard =
 ;;
 
 let suite = [ test_roundtrip_simple; test_roundtrip_medium; test_roundtrip_hard ]
-let () = exit (QCheck_runner.run_tests suite)
+
+let () =
+  let seed = 123456789 in
+  Printf.eprintf "Using fixed seed: %d\n%!" seed;
+  let rand = Random.State.make [| seed |] in
+  let failed = QCheck_runner.run_tests ~rand suite in
+  exit failed
+;;
