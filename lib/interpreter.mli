@@ -5,6 +5,7 @@ type value =
   | VBool of bool
   | VClosure of string * expr * env
   | VRecClosure of string * string * expr * env
+  | VUninitialized
 
 and env = (string * value) list
 

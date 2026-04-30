@@ -5,6 +5,7 @@ type value =
   | VBool of bool
   | VClosure of string * expr * env
   | VRecClosure of string * string * expr * env
+  | VUninitialized
 
 and env = (string * value) list
 
@@ -42,16 +43,19 @@ let rec eval env = function
     let* v = eval env value in
     eval ((name, v) :: env) body
   | Let_rec (name, value, body) ->
-    let* v = eval env value in
+    let temp_env = (name, VUninitialized) :: env in
+    let v = eval temp_env value in
     (match v with
-     | VClosure (param, body_fun, clo_env) ->
+     | Ok (VClosure (param, body_fun, clo_env)) ->
        let closure = VRecClosure (name, param, body_fun, clo_env) in
        eval ((name, closure) :: clo_env) body
-     | _ -> Error "Let rec binds only function")
+     | Ok v -> eval ((name, v) :: env) body
+     | Error _ -> Error ("Recursive value: " ^ name))
 
 and find env name =
   match env with
   | [] -> Error ("Unbound variable: " ^ name)
+  | (n, VUninitialized) :: _ when n = name -> Error ("Unitialized variable: " ^ name)
   | (n, v) :: _ when n = name -> Ok v
   | _ :: rest -> find rest name
 
@@ -99,4 +103,5 @@ let value_to_string = function
   | VBool b -> string_of_bool b
   | VClosure (param, _, _) -> "<fun " ^ param ^ ">"
   | VRecClosure (name, _, _, _) -> "<fun " ^ name ^ ">"
+  | VUninitialized -> "unitialized"
 ;;
