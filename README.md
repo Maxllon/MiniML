@@ -74,8 +74,8 @@ dune runtest
 Покрытие:
 
 ```bash
-dune exec --instrument-with bisect_ppx -- runtest
-bisect2html
+dune runtest --instrument-with bisect_ppx
+bisect-ppx-report html #отчет будет в _coverage/
 ```
 
 ## Лицензия
