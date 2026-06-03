@@ -1,13 +1,4 @@
-open Ast
+open Lambda
 
-type value =
-  | VInt of int
-  | VBool of bool
-  | VClosure of string * expr * env
-  | VRecClosure of string * string * expr * env
-  | VUninitialized
-
-and env = (string * value) list
-
-val eval : env -> expr -> (value, string) result
-val value_to_string : value -> string
+val beta_step : term -> term option
+val beta_reduce : term -> term
