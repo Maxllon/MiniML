@@ -13,11 +13,11 @@ let rec repl env =
         | Ok tokens ->
           (match Parser.parse tokens with
            | Error e -> Error e
-           | Ok ast -> Interpreter.eval env ast)
+           | Ok ast -> Ok (Interpreter.beta_reduce (Lambda.ast_to_term ast)))
       in
       (match result with
        | Error e -> print_endline ("Error: " ^ e)
-       | Ok v -> print_endline (Interpreter.value_to_string v));
+       | Ok v -> print_endline (Lambda.term_to_string v));
       repl env
   with
   | End_of_file -> print_endline "\nGoodbye!"
@@ -31,6 +31,7 @@ and parse_cmd cmd =
     print_endline "  :l <file>  - load and evaluate file";
     print_endline "  :t         - show defined values";
     print_endline "  :c         - clear screen";
+    print_endline "  :compile   - compile code to lambda and print it";
     print_endline "  :q, :quit  - exit REPL";
     repl []
   | "t" | "types" ->
@@ -38,6 +39,17 @@ and parse_cmd cmd =
     repl []
   | "c" | "clear" ->
     print_endline "\027[2J\027[H";
+    repl []
+  | cmd when String.length cmd > 8 && String.sub cmd 0 7 = "compile" ->
+    let code = String.sub cmd 8 (String.length cmd - 8) in
+    (match Lexer.tokenize code with
+     | Error e -> print_endline ("Compile error: " ^ string_of_int e.pos)
+     | Ok tokens ->
+       (match Parser.parse tokens with
+        | Error e -> print_endline ("Compile error: " ^ e)
+        | Ok ast ->
+          let term = Lambda.ast_to_term ast in
+          print_endline (Lambda.term_to_string term)));
     repl []
   | cmd when String.length cmd > 1 && cmd.[0] = 'l' ->
     let filename = String.sub cmd 1 (String.length cmd - 1) in

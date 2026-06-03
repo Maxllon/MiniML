@@ -50,7 +50,7 @@ Lambda expressions
 
   $ echo '\x -> x+1 5' | dune exec miniML
   miniML REPL - type :h to list commands
-  > <fun x>
+  > λx.+ x (1 5)
   > 
   Goodbye!
 
@@ -98,7 +98,7 @@ Boolean expressions
 
   $ echo 'true and false or true' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > λx.λy.x
   > 
   Goodbye!
 
@@ -106,7 +106,7 @@ Boolean and
 
   $ echo 'true and false' | dune exec miniML
   miniML REPL - type :h to list commands
-  > false
+  > λx.λy.y
   > 
   Goodbye!
 
@@ -114,7 +114,7 @@ Boolean or
 
   $ echo 'false or false' | dune exec miniML
   miniML REPL - type :h to list commands
-  > false
+  > λx.λy.y
   > 
   Goodbye!
 
@@ -122,7 +122,7 @@ Comparison operators
 
   $ echo '2 < 3' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > < 2 3
   > 
   Goodbye!
 
@@ -130,7 +130,7 @@ Less than or equal
 
   $ echo '3 <= 3' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > <= 3 3
   > 
   Goodbye!
 
@@ -138,7 +138,7 @@ Greater than
 
   $ echo '5 > 3' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > > 5 3
   > 
   Goodbye!
 
@@ -146,7 +146,7 @@ Greater than or equal
 
   $ echo '3 >= 3' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > >= 3 3
   > 
   Goodbye!
 
@@ -154,7 +154,7 @@ Equality
 
   $ echo '5 = 5' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > λx.λy.x
   > 
   Goodbye!
 
@@ -162,7 +162,7 @@ Inequality
 
   $ echo '5 != 5' | dune exec miniML
   miniML REPL - type :h to list commands
-  > false
+  > λx.λy.y
   > 
   Goodbye!
 
@@ -186,7 +186,7 @@ If with comparison
 
   $ echo 'if 5 > 3 then 10 else 20' | dune exec miniML
   miniML REPL - type :h to list commands
-  > 10
+  > > 5 3 (λ$.10) (λ$.20) 0
   > 
   Goodbye!
 
@@ -210,7 +210,7 @@ Xor operator
 
   $ echo 'true xor false' | dune exec miniML
   miniML REPL - type :h to list commands
-  > true
+  > λx.λy.x
   > 
   Goodbye!
 
@@ -218,7 +218,7 @@ Xor both true
 
   $ echo 'true xor true' | dune exec miniML
   miniML REPL - type :h to list commands
-  > false
+  > λx.λy.y
   > 
   Goodbye!
 
@@ -231,6 +231,7 @@ Help command
     :l <file>  - load and evaluate file
     :t         - show defined values
     :c         - clear screen
+    :compile   - compile code to lambda and print it
     :q, :quit  - exit REPL
   > 
   Goodbye!
@@ -261,7 +262,7 @@ Division by zero
 
   $ echo '1 / 0' | dune exec miniML
   miniML REPL - type :h to list commands
-  > Error: Division by zero
+  > / 1 0
   > 
   Goodbye!
 
@@ -269,6 +270,22 @@ Unbound variable
 
   $ echo 'x' | dune exec miniML
   miniML REPL - type :h to list commands
-  > Error: Unbound variable: x
+  > x
+  > 
+  Goodbye!
+
+Let rec with unused recursive variable
+
+  $ echo 'let rec x = x in 1' | dune exec miniML
+  miniML REPL - type :h to list commands
+  > 1
+  > 
+  Goodbye!
+
+Identity function
+
+  $ echo '\x -> x' | dune exec miniML
+  miniML REPL - type :h to list commands
+  > λx.x
   > 
   Goodbye!
