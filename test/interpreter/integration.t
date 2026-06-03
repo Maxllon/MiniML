@@ -227,12 +227,13 @@ Help command
   $ echo ':h' | dune exec miniML
   miniML REPL - type :h to list commands
   > Available commands:
-    :h, :help   - show this help
-    :l <file>  - load and evaluate file
-    :t         - show defined values
-    :c         - clear screen
-    :compile   - compile code to lambda and print it
-    :q, :quit  - exit REPL
+    :h, :help      - show this help
+    :load <code>   - load code for step-by-step reduction
+    :next          - perform one step of reduction
+    :t             - show defined values
+    :c             - clear screen
+    :compile <code> - compile code to lambda and print it
+    :q, :quit      - exit REPL
   > 
   Goodbye!
 
@@ -289,3 +290,21 @@ Identity function
   > λx.x
   > 
   Goodbye!
+
+Next without load
+
+  $ printf ':next\n:q\n' | dune exec miniML
+  miniML REPL - type :h to list commands
+  > Nothing loaded. Use :load <code> first.
+  > Goodbye!
+
+Load and step reduction
+
+  $ printf ':load let x = 3 + 2 in x\n:next\n:next\n:next\n:q\n' | dune exec miniML
+  miniML REPL - type :h to list commands
+  > Step 0: (λx.x) (+ 3 2)
+  > Step 1: (λx.x) 5
+  > Step 2: 5
+  > Step 2: 5
+  Nothing more to reduce.
+  > Goodbye!
