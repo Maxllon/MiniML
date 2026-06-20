@@ -1,5 +1,6 @@
 _build
 _coverage
+_coverage_new
 /_esy
 /node_modules
 /esy.lock
