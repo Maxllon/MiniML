@@ -55,17 +55,6 @@ and un_to_term op term =
 let rec term_to_string = function
   | Var s -> s
   | Int v -> string_of_int v
-  | Fun (name, body) -> "λ" ^ name ^ "." ^ term_to_string body
-  | App (term, term') ->
-    let left =
-      match term with
-      | Fun _ -> "(" ^ term_to_string term ^ ")"
-      | _ -> term_to_string term
-    in
-    let right =
-      match term' with
-      | Var _ | Int _ -> term_to_string term'
-      | _ -> "(" ^ term_to_string term' ^ ")"
-    in
-    left ^ " " ^ right
+  | Fun (name, body) -> "(λ" ^ name ^ "." ^ term_to_string body ^ ")"
+  | App (term, term') -> "(" ^ term_to_string term ^ " " ^ term_to_string term' ^ ")"
 ;;
