@@ -25,10 +25,7 @@ let rec ast_to_term : expr -> term = function
     App (Fun (name, ast_to_term body), App (z, Fun (name, ast_to_term value)))
   | Lambd (name, expr) -> Fun (name, ast_to_term expr)
   | App (expr, expr') -> App (ast_to_term expr, ast_to_term expr')
-  | If (cond, th, els) ->
-    App
-      ( App (App (ast_to_term cond, Fun ("$", ast_to_term th)), Fun ("$", ast_to_term els))
-      , Int 0 )
+  | If (cond, th, els) -> App (App (ast_to_term cond, ast_to_term th), ast_to_term els)
   | Bin_op (op, a, b) -> bin_to_term op (ast_to_term a) (ast_to_term b)
   | Un_op (op, expr) -> un_to_term op (ast_to_term expr)
 
