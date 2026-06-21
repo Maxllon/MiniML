@@ -1,7 +1,11 @@
 open Ast
 
+type var_type =
+  | Idx of int
+  | Name of string
+
 type term =
-  | Var of string
+  | Var of var_type
   | Fun of string * term
   | App of term * term
   | Int of int

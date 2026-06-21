@@ -1,36 +1,56 @@
 open Ast
 
+exception FreeVar
+
+type var_type =
+  | Idx of int
+  | Name of string
+
 type term =
-  | Var of string
+  | Var of var_type
   | Fun of string * term
   | App of term * term
   | Int of int
 
-let ltrue = Fun ("x", Fun ("y", Var "x"))
-let lfalse = Fun ("x", Fun ("y", Var "y"))
+let ltrue = Fun ("x", Fun ("y", Var (Idx 1)))
+let lfalse = Fun ("x", Fun ("y", Var (Idx 0)))
 
-let rec ast_to_term : expr -> term = function
-  | Var s -> Var s
+let rec find_pos n name = function
+  | name' :: _ when name' = name -> n
+  | _ :: rest -> find_pos (n + 1) name rest
+  | _ -> raise FreeVar
+;;
+
+let rec compile (ctx : string list) (e : expr) : term =
+  match e with
+  | Var s ->
+    (try
+       let i = find_pos 0 s ctx in
+       Var (Idx i)
+     with
+     | FreeVar -> Var (Name s))
   | Int v -> Int v
   | Bool v ->
     (match v with
      | true -> ltrue
      | false -> lfalse)
-  | Let (name, value, body) -> App (Fun (name, ast_to_term body), ast_to_term value)
+  | Let (name, value, body) -> App (Fun (name, compile ctx body), compile ctx value)
   | Let_rec (name, value, body) ->
-    let helper =
-      Fun ("x", App (Var "f", Fun ("y", App (App (Var "x", Var "x"), Var "y"))))
+    let z_expr =
+      let helper_expr : expr =
+        Lambd ("x", App (Var "f", Lambd ("y", App (App (Var "x", Var "x"), Var "y"))))
+      in
+      Lambd ("f", App (helper_expr, helper_expr))
     in
-    let z = Fun ("f", App (helper, helper)) in
-    App (Fun (name, ast_to_term body), App (z, Fun (name, ast_to_term value)))
-  | Lambd (name, expr) -> Fun (name, ast_to_term expr)
-  | App (expr, expr') -> App (ast_to_term expr, ast_to_term expr')
-  | If (cond, th, els) -> App (App (ast_to_term cond, ast_to_term th), ast_to_term els)
-  | Bin_op (op, a, b) -> bin_to_term op (ast_to_term a) (ast_to_term b)
-  | Un_op (op, expr) -> un_to_term op (ast_to_term expr)
+    compile ctx (App (Lambd (name, body), App (z_expr, Lambd (name, value))))
+  | Lambd (name, expr) -> Fun (name, compile (name :: ctx) expr)
+  | App (expr, expr') -> App (compile ctx expr, compile ctx expr')
+  | If (cond, th, els) -> App (App (compile ctx cond, compile ctx th), compile ctx els)
+  | Bin_op (op, a, b) -> bin_to_term op (compile ctx a) (compile ctx b)
+  | Un_op (op, expr) -> un_to_term op (compile ctx expr)
 
 and bin_to_term op a b =
-  let builder op' a' b' = App (App (Var op', a'), b') in
+  let builder op' a' b' = App (App (Var (Name op'), a'), b') in
   match op with
   | Add -> builder "+" a b
   | Sub -> builder "-" a b
@@ -52,8 +72,11 @@ and un_to_term op term =
   | Neg -> bin_to_term Sub (Int 0) term
 ;;
 
+let ast_to_term (e : expr) = compile [] e
+
 let rec term_to_string = function
-  | Var s -> s
+  | Var (Name s) -> s
+  | Var (Idx i) -> string_of_int i
   | Int v -> string_of_int v
   | Fun (name, body) -> "(λ" ^ name ^ "." ^ term_to_string body ^ ")"
   | App (term, term') -> "(" ^ term_to_string term ^ " " ^ term_to_string term' ^ ")"
