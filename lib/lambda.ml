@@ -19,9 +19,9 @@ let rec ast_to_term : expr -> term = function
   | Let (name, value, body) -> App (Fun (name, ast_to_term body), ast_to_term value)
   | Let_rec (name, value, body) ->
     let helper =
-      Fun ("h", App (Var "g", Fun ("x", App (App (Var "h", Var "h"), Var "x"))))
+      Fun ("x", App (Var "f", Fun ("y", App (App (Var "x", Var "x"), Var "y"))))
     in
-    let z = Fun ("g", App (helper, helper)) in
+    let z = Fun ("f", App (helper, helper)) in
     App (Fun (name, ast_to_term body), App (z, Fun (name, ast_to_term value)))
   | Lambd (name, expr) -> Fun (name, ast_to_term expr)
   | App (expr, expr') -> App (ast_to_term expr, ast_to_term expr')
