@@ -2,11 +2,13 @@ open Ast
 open Token
 
 let rec parse tk_list =
-  match parse_expr tk_list with
-  | Ok (ast, []) -> Ok ast
-  | Ok (ast, [ EOF ]) -> Ok ast
-  | Ok (_, _) -> Error "Extra tokens"
-  | Error e -> Error e
+  try
+    match parse_expr tk_list with
+    | ast, [] -> Ok ast
+    | ast, [ EOF ] -> Ok ast
+    | _, _ -> Error "Extra tokens"
+  with
+  | Failure s -> Error s
 
 and parse_expr tk_list = parse_let tk_list
 
@@ -25,15 +27,12 @@ and parse_let tk_list =
   | _ -> parse_fun tk_list
 
 and parse_let_body constructor name tk_list =
-  match parse_expr tk_list with
-  | Error e -> Error e
-  | Ok (expr, rest) ->
-    (match rest with
-     | KEYWORD IN :: rest' ->
-       (match parse_expr rest' with
-        | Error e -> Error e
-        | Ok (in_expr, rest'') -> Ok (constructor (name, expr, in_expr), rest''))
-     | _ -> Error "Expected in after let/let rec")
+  let value, rest = parse_expr tk_list in
+  match rest with
+  | KEYWORD IN :: rest' ->
+    let body, rest'' = parse_expr rest' in
+    constructor (name, value, body), rest''
+  | _ -> failwith "Expected in after let/let rec"
 
 and parse_fun tk_list =
   match tk_list with
@@ -44,36 +43,28 @@ and parse_args args tk_list =
   match tk_list with
   | VAR name :: rest -> parse_args (name :: args) rest
   | KEYWORD ARROW :: rest ->
-    (match parse_expr rest with
-     | Error e -> Error e
-     | Ok (expr, rest') ->
-       let rec build args' expr' =
-         match args' with
-         | [] -> expr'
-         | s :: args'' -> Lambd (s, build args'' expr')
-       in
-       Ok (build (List.rev args) expr, rest'))
-  | _ -> Error "Expected args or ARROW keyword"
+    let expr, rest' = parse_expr rest in
+    let rec build args' expr' =
+      match args' with
+      | [] -> expr'
+      | s :: args'' -> Lambd (s, build args'' expr')
+    in
+    build (List.rev args) expr, rest'
+  | _ -> failwith "Expected args or ARROW keyword"
 
 and parse_if tk_list =
   match tk_list with
   | KEYWORD IF :: rest ->
-    (match parse_expr rest with
-     | Error e -> Error e
-     | Ok (cond, rest') ->
-       (match rest' with
-        | KEYWORD THEN :: rest'' ->
-          (match parse_expr rest'' with
-           | Error e -> Error e
-           | Ok (then_expr, rest''') ->
-             (match rest''' with
-              | KEYWORD ELSE :: rest'''' ->
-                (match parse_expr rest'''' with
-                 | Error e -> Error e
-                 | Ok (else_expr, rest''''') ->
-                   Ok (If (cond, then_expr, else_expr), rest'''''))
-              | _ -> Error "expected else keyword"))
-        | _ -> Error "expected then keyword"))
+    let cond, rest' = parse_expr rest in
+    (match rest' with
+     | KEYWORD THEN :: rest'' ->
+       let then_expr, rest''' = parse_expr rest'' in
+       (match rest''' with
+        | KEYWORD ELSE :: rest'''' ->
+          let else_expr, rest''''' = parse_expr rest'''' in
+          If (cond, then_expr, else_expr), rest'''''
+        | _ -> failwith "expected else keyword")
+     | _ -> failwith "expected then keyword")
   | _ -> parse_eq tk_list
 
 and parse_eq tk_list =
@@ -155,45 +146,39 @@ and parse_mult tk_list =
 and parse_un tk_list =
   match tk_list with
   | OPERATOR NOT :: rest ->
-    (match parse_atom rest with
-     | Error e -> Error e
-     | Ok (expr, rest') -> Ok (Un_op (Not, expr), rest'))
+    let expr, rest' = parse_atom rest in
+    Un_op (Not, expr), rest'
   | OPERATOR MINUS :: rest ->
-    (match parse_atom rest with
-     | Error e -> Error e
-     | Ok (expr, rest') -> Ok (Un_op (Neg, expr), rest'))
+    let expr, rest' = parse_atom rest in
+    Un_op (Neg, expr), rest'
   | _ -> parse_app tk_list
 
 and parse_app tk_list =
-  match parse_atom tk_list with
-  | Error e -> Error e
-  | Ok (expr, rest) ->
-    let rec build_app expr' rest' =
-      match parse_atom rest' with
-      | Error _ -> Ok (expr', rest')
-      | Ok (atom, rest'') -> build_app (App (expr', atom)) rest''
-    in
-    build_app expr rest
+  let expr, rest = parse_atom tk_list in
+  let rec build_app expr' rest' =
+    try
+      let atom, rest'' = parse_atom rest' in
+      build_app (App (expr', atom)) rest''
+    with
+    | Failure _ -> expr', rest'
+  in
+  build_app expr rest
 
 and parse_atom = function
-  | INT n :: rest -> Ok (Int n, rest)
-  | VAR s :: rest -> Ok (Var s, rest)
-  | BOOLEAN a :: rest -> Ok (Bool a, rest)
+  | INT n :: rest -> Int n, rest
+  | VAR s :: rest -> Var s, rest
+  | BOOLEAN a :: rest -> Bool a, rest
   | BRACKET L_PAREN :: rest ->
     (match parse_expr rest with
-     | Error e -> Error e
-     | Ok (expr, BRACKET R_PAREN :: rest') -> Ok (expr, rest')
-     | Ok (_, _) -> Error "Missing closing parenthesis")
-  | _ -> Error "Error in parse_atom"
+     | expr, BRACKET R_PAREN :: rest' -> expr, rest'
+     | _, _ -> failwith "Missing closing parenthesis")
+  | _ -> failwith "Error in parse_atom"
 
 and parse_bin next operators f tk_list =
-  match next tk_list with
-  | Error e -> Error e
-  | Ok (left, rest) ->
-    (match rest with
-     | OPERATOR op :: rest' when List.mem op operators ->
-       (match parse_bin next operators f rest' with
-        | Error e -> Error e
-        | Ok (right, rest'') -> Ok (f op left right, rest''))
-     | _ -> Ok (left, rest))
+  let left, rest = next tk_list in
+  match rest with
+  | OPERATOR op :: rest' when List.mem op operators ->
+    let right, rest'' = parse_bin next operators f rest' in
+    f op left right, rest''
+  | _ -> left, rest
 ;;
