@@ -15,8 +15,7 @@ let () =
             | Error e -> print_endline ("Parser error: " ^ e)
             | Ok ast ->
               let result = Interpreter.eval (Lambda.ast_to_term ast) in
-              print_endline (Lambda.term_to_string result);
-              print_endline (Lambda.term_to_string (Lambda.ast_to_term ast))))
+              print_endline (Lambda.term_to_string result)))
     done
   with
   | End_of_file -> print_endline "\nGoodbye!"

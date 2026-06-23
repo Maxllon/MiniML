@@ -76,8 +76,8 @@ let ast_to_term (e : expr) = compile [] e
 
 let rec term_to_string = function
   | Var (Name s) -> s
-  | Var (Idx i) -> string_of_int i
+  | Var (Idx i) -> "i" ^ string_of_int i
   | Int v -> string_of_int v
-  | Fun (name, body) -> "(λ" ^ name ^ "." ^ term_to_string body ^ ")"
+  | Fun (_, body) -> "(λ" ^ "." ^ term_to_string body ^ ")"
   | App (term, term') -> "(" ^ term_to_string term ^ " " ^ term_to_string term' ^ ")"
 ;;
