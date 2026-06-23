@@ -2,7 +2,7 @@ open Lambda
 
 let rec shift d c = function
   | Var (Idx k) -> if k < c then Var (Idx k) else Var (Idx (k + d))
-  | Fun (name, t) -> Fun (name, shift d (c + 1) t)
+  | Fun t -> Fun (shift d (c + 1) t)
   | App (t1, t2) -> App (shift d c t1, shift d c t2)
   | t -> t
 ;;
@@ -11,7 +11,7 @@ let rec shift d c = function
 let rec subst j s t =
   match t with
   | Var (Idx k) when k = j -> s
-  | Fun (name, t1) -> Fun (name, subst (j + 1) (shift 1 0 s) t1)
+  | Fun t1 -> Fun (subst (j + 1) (shift 1 0 s) t1)
   | App (t1, t2) -> App (subst j s t1, subst j s t2)
   | _ -> t
 ;;
@@ -32,7 +32,7 @@ let rec eval = function
     let t1 = eval t1 in
     let t2 = eval t2 in
     (match t1 with
-     | Fun (_, body) ->
+     | Fun body ->
        let res = subst 0 (shift 1 0 t2) body in
        eval (shift (-1) 0 res)
      | _ ->

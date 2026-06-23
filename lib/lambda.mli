@@ -6,7 +6,7 @@ type var_type =
 
 type term =
   | Var of var_type
-  | Fun of string * term
+  | Fun of term
   | App of term * term
   | Int of int
 

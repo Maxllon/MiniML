@@ -8,12 +8,12 @@ type var_type =
 
 type term =
   | Var of var_type
-  | Fun of string * term
+  | Fun of term
   | App of term * term
   | Int of int
 
-let ltrue = Fun ("x", Fun ("y", Var (Idx 1)))
-let lfalse = Fun ("x", Fun ("y", Var (Idx 0)))
+let ltrue = Fun (Fun (Var (Idx 1)))
+let lfalse = Fun (Fun (Var (Idx 0)))
 
 let rec find_pos n name = function
   | name' :: _ when name' = name -> n
@@ -43,7 +43,7 @@ let rec compile (ctx : string list) (e : expr) : term =
       Lambd ("f", App (helper_expr, helper_expr))
     in
     compile ctx (App (Lambd (name, body), App (z_expr, Lambd (name, value))))
-  | Lambd (name, expr) -> Fun (name, compile (name :: ctx) expr)
+  | Lambd (name, expr) -> Fun (compile (name :: ctx) expr)
   | App (expr, expr') -> App (compile ctx expr, compile ctx expr')
   | If (cond, th, els) -> App (App (compile ctx cond, compile ctx th), compile ctx els)
   | Bin_op (op, a, b) -> bin_to_term op (compile ctx a) (compile ctx b)
@@ -78,6 +78,6 @@ let rec term_to_string = function
   | Var (Name s) -> s
   | Var (Idx i) -> "i" ^ string_of_int i
   | Int v -> string_of_int v
-  | Fun (_, body) -> "(λ" ^ "." ^ term_to_string body ^ ")"
+  | Fun body -> "(λ" ^ "." ^ term_to_string body ^ ")"
   | App (term, term') -> "(" ^ term_to_string term ^ " " ^ term_to_string term' ^ ")"
 ;;
