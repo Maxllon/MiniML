@@ -34,7 +34,7 @@ let rec compile (ctx : string list) (e : expr) : term =
     (match v with
      | true -> ltrue
      | false -> lfalse)
-  | Let (name, value, body) -> App (Fun (name, compile ctx body), compile ctx value)
+  | Let (name, value, body) -> compile ctx (App (Lambd (name, body), value))
   | Let_rec (name, value, body) ->
     let z_expr =
       let helper_expr : expr =
