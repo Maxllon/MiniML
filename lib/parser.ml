@@ -68,80 +68,78 @@ and parse_if tk_list =
   | _ -> parse_eq tk_list
 
 and parse_eq tk_list =
-  parse_bin
-    parse_or
-    [ EQ; NEQ ]
-    (fun op left right ->
-       match op with
-       | EQ -> Bin_op (Eq, left, right)
-       | NEQ -> Bin_op (Neq, left, right)
-       | _ -> failwith "impossible op in parse_eq")
-    tk_list
+  let left, rest = parse_or tk_list in
+  match rest with
+  | OPERATOR EQ :: rest' ->
+    let right, rest'' = parse_eq rest' in
+    Bin_op (Eq, left, right), rest''
+  | OPERATOR NEQ :: rest' ->
+    let right, rest'' = parse_eq rest' in
+    Bin_op (Neq, left, right), rest''
+  | _ -> left, rest
 
 and parse_or tk_list =
-  parse_bin
-    parse_xor
-    [ OR ]
-    (fun op left right ->
-       match op with
-       | OR -> Bin_op (Or, left, right)
-       | _ -> failwith "impossible op in parse_or")
-    tk_list
+  let left, rest = parse_xor tk_list in
+  match rest with
+  | OPERATOR OR :: rest' ->
+    let right, rest'' = parse_or rest' in
+    Bin_op (Or, left, right), rest''
+  | _ -> left, rest
 
 and parse_xor tk_list =
-  parse_bin
-    parse_and
-    [ XOR ]
-    (fun op left right ->
-       match op with
-       | XOR -> Bin_op (Xor, left, right)
-       | _ -> failwith "impossible op in parse_xor")
-    tk_list
+  let left, rest = parse_and tk_list in
+  match rest with
+  | OPERATOR XOR :: rest' ->
+    let right, rest'' = parse_xor rest' in
+    Bin_op (Xor, left, right), rest''
+  | _ -> left, rest
 
 and parse_and tk_list =
-  parse_bin
-    parse_comp
-    [ AND ]
-    (fun op left right ->
-       match op with
-       | AND -> Bin_op (And, left, right)
-       | _ -> failwith "impossible op in parse_and")
-    tk_list
+  let left, rest = parse_comp tk_list in
+  match rest with
+  | OPERATOR AND :: rest' ->
+    let right, rest'' = parse_and rest' in
+    Bin_op (And, left, right), rest''
+  | _ -> left, rest
 
 and parse_comp tk_list =
-  parse_bin
-    parse_add
-    [ LE; LT; GE; GT ]
-    (fun op left right ->
-       match op with
-       | LE -> Bin_op (Le, left, right)
-       | LT -> Bin_op (Lt, left, right)
-       | GE -> Bin_op (Ge, left, right)
-       | GT -> Bin_op (Gt, left, right)
-       | _ -> failwith "impossible op in parse_comp")
-    tk_list
+  let left, rest = parse_add tk_list in
+  match rest with
+  | OPERATOR LE :: rest' ->
+    let right, rest'' = parse_comp rest' in
+    Bin_op (Le, left, right), rest''
+  | OPERATOR LT :: rest' ->
+    let right, rest'' = parse_comp rest' in
+    Bin_op (Lt, left, right), rest''
+  | OPERATOR GE :: rest' ->
+    let right, rest'' = parse_comp rest' in
+    Bin_op (Ge, left, right), rest''
+  | OPERATOR GT :: rest' ->
+    let right, rest'' = parse_comp rest' in
+    Bin_op (Gt, left, right), rest''
+  | _ -> left, rest
 
 and parse_add tk_list =
-  parse_bin
-    parse_mult
-    [ PLUS; MINUS ]
-    (fun op left right ->
-       match op with
-       | PLUS -> Bin_op (Add, left, right)
-       | MINUS -> Bin_op (Sub, left, right)
-       | _ -> failwith "impossible op in parse_add")
-    tk_list
+  let left, rest = parse_mult tk_list in
+  match rest with
+  | OPERATOR PLUS :: rest' ->
+    let right, rest'' = parse_add rest' in
+    Bin_op (Add, left, right), rest''
+  | OPERATOR MINUS :: rest' ->
+    let right, rest'' = parse_add rest' in
+    Bin_op (Sub, left, right), rest''
+  | _ -> left, rest
 
 and parse_mult tk_list =
-  parse_bin
-    parse_un
-    [ MULT; DIV ]
-    (fun op left right ->
-       match op with
-       | MULT -> Bin_op (Mult, left, right)
-       | DIV -> Bin_op (Div, left, right)
-       | _ -> failwith "impossible op in parse_mult")
-    tk_list
+  let left, rest = parse_un tk_list in
+  match rest with
+  | OPERATOR MULT :: rest' ->
+    let right, rest'' = parse_mult rest' in
+    Bin_op (Mult, left, right), rest''
+  | OPERATOR DIV :: rest' ->
+    let right, rest'' = parse_mult rest' in
+    Bin_op (Div, left, right), rest''
+  | _ -> left, rest
 
 and parse_un tk_list =
   match tk_list with
@@ -173,12 +171,4 @@ and parse_atom = function
      | expr, BRACKET R_PAREN :: rest' -> expr, rest'
      | _, _ -> failwith "Missing closing parenthesis")
   | _ -> failwith "Error in parse_atom"
-
-and parse_bin next operators f tk_list =
-  let left, rest = next tk_list in
-  match rest with
-  | OPERATOR op :: rest' when List.mem op operators ->
-    let right, rest'' = parse_bin next operators f rest' in
-    f op left right, rest''
-  | _ -> left, rest
 ;;
