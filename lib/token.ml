@@ -6,7 +6,7 @@ type keyword =
   | ELSE
   | IN
   | LAMBD
-  | ARROW
+  | DOT
 
 type bracket =
   | L_PAREN
@@ -53,7 +53,7 @@ let isIdent = function
   | _ -> false
 ;;
 
-let isOp c = String.contains "\\+-/*=!><&|^" c
+let isOp c = String.contains "\\+-/*=!><&|.^" c
 let isBracket c = String.contains "()" c
 
 let kwFromString = function
@@ -64,7 +64,7 @@ let kwFromString = function
   | "else" -> Some ELSE
   | "in" -> Some IN
   | "\\" -> Some LAMBD
-  | "->" -> Some ARROW
+  | "." -> Some DOT
   | _ -> None
 ;;
 
@@ -171,7 +171,7 @@ let tokenToString = function
   | KEYWORD ELSE -> "ELSE"
   | KEYWORD IN -> "IN"
   | KEYWORD LAMBD -> "LAMBD"
-  | KEYWORD ARROW -> "ARROW"
+  | KEYWORD DOT -> "DOT"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

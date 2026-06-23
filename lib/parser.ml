@@ -42,7 +42,7 @@ and parse_fun tk_list =
 and parse_args args tk_list =
   match tk_list with
   | VAR name :: rest -> parse_args (name :: args) rest
-  | KEYWORD ARROW :: rest ->
+  | KEYWORD DOT :: rest ->
     let expr, rest' = parse_expr rest in
     let rec build args' expr' =
       match args' with

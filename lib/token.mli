@@ -6,7 +6,7 @@ type keyword =
   | ELSE
   | IN
   | LAMBD
-  | ARROW
+  | DOT
 
 type bracket =
   | L_PAREN
