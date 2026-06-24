@@ -53,8 +53,8 @@ let isIdent = function
   | _ -> false
 ;;
 
-let isOp c = String.contains "\\+-/*=!><&|.^" c
-let isBracket c = String.contains "()" c
+let isOp c = String.contains "\\+-/*=!><&|^" c
+let isBracket c = String.contains "()." c
 
 let kwFromString = function
   | "let" -> Some LET
@@ -111,6 +111,7 @@ let parseBracket s =
   match s.[0] with
   | '(' -> 1, BRACKET L_PAREN
   | ')' -> 1, BRACKET R_PAREN
+  | '.' -> 1, KEYWORD DOT
   | _ -> 1, INVALID
 ;;
 
