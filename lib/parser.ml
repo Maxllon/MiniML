@@ -14,25 +14,37 @@ and parse_expr tk_list = parse_let tk_list
 
 and parse_let tk_list =
   match tk_list with
-  | KEYWORD LET :: KEYWORD REC :: VAR name :: OPERATOR EQ :: rest ->
+  | KEYWORD LET :: KEYWORD REC :: VAR name :: rest ->
     parse_let_body
+      []
       (fun (name', expr', in_expr') -> Let_rec (name', expr', in_expr'))
       name
       rest
-  | KEYWORD LET :: VAR name :: OPERATOR EQ :: rest ->
+  | KEYWORD LET :: VAR name :: rest ->
     parse_let_body
+      []
       (fun (name', expr', in_expr') -> Let (name', expr', in_expr'))
       name
       rest
   | _ -> parse_fun tk_list
 
-and parse_let_body constructor name tk_list =
-  let value, rest = parse_expr tk_list in
-  match rest with
-  | KEYWORD IN :: rest' ->
-    let body, rest'' = parse_expr rest' in
-    constructor (name, value, body), rest''
-  | _ -> failwith "Expected in after let/let rec"
+and parse_let_body args constructor name tk_list =
+  match tk_list with
+  | VAR n :: r -> parse_let_body (n :: args) constructor name r
+  | OPERATOR EQ :: r ->
+    let value, rest = parse_expr r in
+    let rec build args' expr' =
+      match args' with
+      | [] -> expr'
+      | s :: args'' -> Lambd (s, build args'' expr')
+    in
+    let value = build args value in
+    (match rest with
+     | KEYWORD IN :: rest' ->
+       let body, rest'' = parse_expr rest' in
+       constructor (name, value, body), rest''
+     | _ -> failwith "Expected in after let/let rec")
+  | _ -> failwith "Expected \"=\" after let/let rec"
 
 and parse_fun tk_list =
   match tk_list with
