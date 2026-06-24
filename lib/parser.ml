@@ -62,7 +62,7 @@ and parse_args args tk_list =
       | s :: args'' -> Lambd (s, build args'' expr')
     in
     build (List.rev args) expr, rest'
-  | _ -> failwith "Expected args or ARROW keyword"
+  | _ -> failwith "Expected args or DOT keyword"
 
 and parse_if tk_list =
   match tk_list with

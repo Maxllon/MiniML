@@ -51,7 +51,7 @@ let rec expr_to_string = function
     ^ " in "
     ^ expr_to_string body
     ^ ")"
-  | Lambd (arg, body) -> "(" ^ "\\" ^ arg ^ " -> " ^ expr_to_string body ^ ")"
+  | Lambd (arg, body) -> "(" ^ "\\" ^ arg ^ "." ^ expr_to_string body ^ ")"
   | App (f, arg) -> "(" ^ expr_to_string f ^ " " ^ expr_to_string arg ^ ")"
   | If (cond, then_body, else_body) ->
     "("

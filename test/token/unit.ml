@@ -51,7 +51,7 @@ let test_keywords () =
   test_token (4, KEYWORD ELSE) "else";
   test_token (2, KEYWORD IN) "in";
   test_token (1, KEYWORD LAMBD) "\\";
-  test_token (2, KEYWORD ARROW) "->";
+  test_token (1, KEYWORD DOT) ".";
   test_token (4, VAR "letx") "letx"
 ;;
 

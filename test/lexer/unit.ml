@@ -28,8 +28,8 @@ let test_correct_expressions () =
     "   let x =  5 in              x   ";
   test_tk_list
     "fun expr"
-    (Ok [ KEYWORD LAMBD; VAR "x"; KEYWORD ARROW; VAR "x"; EOF ])
-    "\\x->x";
+    (Ok [ KEYWORD LAMBD; VAR "x"; KEYWORD DOT; VAR "x"; EOF ])
+    "\\x.x";
   ()
 ;;
 

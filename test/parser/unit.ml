@@ -92,15 +92,34 @@ let test_let () =
     "let rec inf loop"
     (Let_rec ("x", Bin_op (Add, Var "x", Int 1), Var "x"))
     "let rec x = x + 1 in x";
+  test_parse
+    "let with arg sugar"
+    (Let ("f", Lambd ("x", Bin_op (Add, Var "x", Int 1)), App (Var "f", Int 5)))
+    "let f x = x+1 in f 5";
+  test_parse
+    "let rec with arg sugar"
+    (Let_rec
+       ( "fact"
+       , Lambd
+           ( "n"
+           , If
+               ( Bin_op (Eq, Var "n", Int 0)
+               , Int 1
+               , Bin_op
+                   ( Mult
+                   , Var "n"
+                   , App (Var "fact", Bin_op (Sub, Var "n", Int 1)) ) ) )
+       , Var "fact" ))
+    "let rec fact n = if n=0 then 1 else n*fact(n-1) in fact";
   ()
 ;;
 
 let test_fun () =
-  test_parse "basic fun expr" (Lambd ("x", Var "x")) "\\x -> x";
+  test_parse "basic fun expr" (Lambd ("x", Var "x")) "\\x.x";
   test_parse
     "multy vars"
     (Lambd ("x", Lambd ("y", Bin_op (Add, Var "x", Var "y"))))
-    "\\x y -> (x+y)";
+    "\\x y.x+y";
   ()
 ;;
 
