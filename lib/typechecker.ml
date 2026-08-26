@@ -6,27 +6,54 @@ type ml_type =
   | TArrow of ml_type * ml_type
   | TVar of int
 
-let counter = ref 0
+let get_bin_type = function
+  | Add | Sub | Mult | Div -> TInt, TInt, TInt
+  | Eq | Neq | Lt | Le | Gt | Ge -> TInt, TInt, TBool
+  | And | Or | Xor -> TBool, TBool, TBool
+;;
 
-let fresh_var =
+let get_un_type = function
+  | Not -> TBool, TBool
+  | Neg -> TInt, TInt
+;;
+
+let counter = ref (-1)
+
+let fresh_var () =
   counter := !counter + 1;
   !counter
 ;;
 
-let rec subst_c name n_type tp =
-  match tp with
+let rec subst_c name n_type = function
   | TVar i when i = name -> n_type
   | TArrow (l, r) -> TArrow (subst_c name n_type l, subst_c name n_type r)
   | some -> some
+;;
+
+let rec occurs name = function
+  | TVar i when i = name -> true
+  | TArrow (l, r) -> occurs name l || occurs name r
+  | _ -> false
 ;;
 
 let rec unify = function
   | (ltype, _) :: [] -> ltype
   | (ltype, rtype) :: rest when ltype = rtype -> unify rest
   | (TVar name, tp) :: rest | (tp, TVar name) :: rest ->
-    unify (List.map (fun (a, b) -> subst_c name tp a, subst_c name tp b) rest)
+    if occurs name tp
+    then failwith "Occur check error"
+    else unify (List.map (fun (a, b) -> subst_c name tp a, subst_c name tp b) rest)
   | (TArrow (l1, l2), TArrow (r1, r2)) :: rest -> unify ((l1, r1) :: (l2, r2) :: rest)
+  | (ltype, rtype) :: _ ->
+    failwith
+      ("Cannot equalise:\n" ^ ml_type_to_string ltype ^ "\n" ^ ml_type_to_string rtype)
   | _ -> failwith "Should never reach here"
+
+and ml_type_to_string = function
+  | TInt -> "Int"
+  | TBool -> "Bool"
+  | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
+  | TVar i -> "t" ^ string_of_int i
 ;;
 
 let rec set_equations (term : expr) (ctx : (string * ml_type) list)
@@ -36,17 +63,17 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
   | Var name ->
     (match List.assoc_opt name ctx with
      | Some t -> t, []
-     | _ -> failwith "Unbound variable")
+     | _ -> failwith ("Unbound variable: " ^ "\"" ^ name ^ "\""))
   | Int _ -> TInt, []
   | Bool _ -> TBool, []
   | Lambd (name, body) ->
-    let arg_type = TVar fresh_var in
+    let arg_type = TVar (fresh_var ()) in
     let body_type, c = set_equations body ((name, arg_type) :: ctx) in
     TArrow (arg_type, body_type), c
   | App (left, right) ->
     let ltype, lc = set_equations left ctx in
     let rtype, rc = set_equations right ctx in
-    let exprT = TVar fresh_var in
+    let exprT = TVar (fresh_var ()) in
     exprT, (ltype, TArrow (rtype, exprT)) :: (lc @ rc)
   | If (cnd, th, els) ->
     let cnd_type, cnd_c = set_equations cnd ctx in
@@ -54,10 +81,17 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     let els_type, els_c = set_equations els ctx in
     let new_c = [ cnd_type, TBool; th_type, els_type ] in
     th_type, new_c @ cnd_c @ th_c @ els_c
-  | Bin_op _ -> failwith "Bin op not supported"
-  | Un_op _ -> failwith "Un op not supported"
+  | Bin_op (op, left, right) ->
+    let exc_l, exc_r, exc_res = get_bin_type op in
+    let ltype, lc = set_equations left ctx in
+    let rtype, rc = set_equations right ctx in
+    exc_res, (exc_l, ltype) :: (exc_r, rtype) :: (lc @ rc)
+  | Un_op (op, value) ->
+    let exc_t, exc_res = get_un_type op in
+    let vtype, vc = set_equations value ctx in
+    exc_res, (exc_t, vtype) :: vc
   | Let_rec (name, value, body) ->
-    let f_type = TVar fresh_var in
+    let f_type = TVar (fresh_var ()) in
     let value_type, value_c = set_equations value ((name, f_type) :: ctx) in
     let body_type, body_c = set_equations body ((name, f_type) :: ctx) in
     body_type, (f_type, value_type) :: (value_c @ body_c)
