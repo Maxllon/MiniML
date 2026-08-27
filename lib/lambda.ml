@@ -12,6 +12,8 @@ type term =
   | App of term * term
   | Int of int
 
+let ch_true = Lambd ("x", Lambd ("y", Var "x"))
+let ch_false = Lambd ("x", Lambd ("y", Var "y"))
 let ltrue = Fun (Fun (Var (Idx 1)))
 let lfalse = Fun (Fun (Var (Idx 0)))
 
@@ -21,8 +23,19 @@ let rec find_pos n name = function
   | _ -> raise FreeVar
 ;;
 
-let rec compile (ctx : string list) (e : expr) : term =
+let try_std (e : expr) : expr =
+  let first = Lambd ("f", App (Var "f", ch_true)) in
+  let second = Lambd ("f", App (Var "f", ch_false)) in
   match e with
+  | App (Var "nth", Int 0) -> Lambd ("g", App (first, Var "g"))
+  | App (Var "nth", Int i) ->
+    let rec helper n : expr = if n = 0 then Var "g" else App (second, helper (n - 1)) in
+    Lambd ("g", helper i)
+  | _ -> e
+;;
+
+let rec compile (ctx : string list) (e : expr) : term =
+  match try_std e with
   | Var s ->
     (try
        let i = find_pos 0 s ctx in
@@ -48,6 +61,12 @@ let rec compile (ctx : string list) (e : expr) : term =
   | If (cond, th, els) -> App (App (compile ctx cond, compile ctx th), compile ctx els)
   | Bin_op (op, a, b) -> bin_to_term op (compile ctx a) (compile ctx b)
   | Un_op (op, expr) -> un_to_term op (compile ctx expr)
+  | Tuple tuple -> compile ctx (compile_tuple tuple)
+
+and compile_tuple = function
+  | [ expr ] -> expr
+  | expr :: rest -> Lambd ("f", App (App (Var "f", expr), compile_tuple rest))
+  | _ -> failwith "(Compiler): Should never reach here!"
 
 and bin_to_term op a b =
   let builder op' a' b' = App (App (Var (Name op'), a'), b') in

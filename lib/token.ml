@@ -7,6 +7,7 @@ type keyword =
   | IN
   | LAMBD
   | DOT
+  | COMMA
 
 type bracket =
   | L_PAREN
@@ -54,7 +55,7 @@ let isIdent = function
 ;;
 
 let isOp c = String.contains "\\+-/*=!><&|^" c
-let isBracket c = String.contains "()." c
+let isBracket c = String.contains "().," c
 
 let kwFromString = function
   | "let" -> Some LET
@@ -65,6 +66,7 @@ let kwFromString = function
   | "in" -> Some IN
   | "\\" -> Some LAMBD
   | "." -> Some DOT
+  | "," -> Some COMMA
   | _ -> None
 ;;
 
@@ -112,6 +114,7 @@ let parseBracket s =
   | '(' -> 1, BRACKET L_PAREN
   | ')' -> 1, BRACKET R_PAREN
   | '.' -> 1, KEYWORD DOT
+  | ',' -> 1, KEYWORD COMMA
   | _ -> 1, INVALID
 ;;
 
@@ -173,6 +176,7 @@ let tokenToString = function
   | KEYWORD IN -> "IN"
   | KEYWORD LAMBD -> "LAMBD"
   | KEYWORD DOT -> "DOT"
+  | KEYWORD COMMA -> "COMMA"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

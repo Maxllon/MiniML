@@ -5,6 +5,7 @@ type ml_type =
   | TBool
   | TArrow of ml_type * ml_type
   | TVar of int
+  | TTuple of ml_type list
 
 let get_bin_type = function
   | Add | Sub | Mult | Div -> TInt, TInt, TInt
@@ -44,6 +45,16 @@ let rec unify = function
     then failwith "Occur check error"
     else unify (List.map (fun (a, b) -> subst_c name tp a, subst_c name tp b) rest)
   | (TArrow (l1, l2), TArrow (r1, r2)) :: rest -> unify ((l1, r1) :: (l2, r2) :: rest)
+  (*danger*)
+  | (TTuple l, TTuple r) :: rest ->
+    let rec check_size ((l, r) : ml_type list * ml_type list) : (ml_type * ml_type) list =
+      match l, r with
+      | l :: lrest, r :: rrest -> (l, r) :: check_size (lrest, rrest)
+      | [], _ -> []
+      | _ :: _, [] -> failwith "Tuple size match error"
+    in
+    unify (check_size (l, r) @ rest)
+  (*danger*)
   | (ltype, rtype) :: _ ->
     failwith
       ("Cannot equalise:\n" ^ ml_type_to_string ltype ^ "\n" ^ ml_type_to_string rtype)
@@ -54,12 +65,27 @@ and ml_type_to_string = function
   | TBool -> "Bool"
   | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
   | TVar i -> "t" ^ string_of_int i
+  | TTuple tuple ->
+    let rec helper = function
+      | first :: second :: rest ->
+        ml_type_to_string first ^ " * " ^ helper (second :: rest)
+      | tp :: [] -> ml_type_to_string tp
+      | _ -> ""
+    in
+    "(" ^ helper tuple ^ ")"
 ;;
 
 let rec set_equations (term : expr) (ctx : (string * ml_type) list)
   : ml_type * (ml_type * ml_type) list
   =
   match term with
+  (*std*)
+  | App (Var "nth", Int n) ->
+    ( TArrow
+        ( TTuple (List.init (n + 1) (fun _ -> TVar (fresh_var ())))
+        , TVar (fresh_var () + n + 1) )
+    , [] )
+  (*std*)
   | Var name ->
     (match List.assoc_opt name ctx with
      | Some t -> t, []
@@ -99,6 +125,19 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     let value_type, value_c = set_equations value ctx in
     let body_type, body_c = set_equations body ((name, value_type) :: ctx) in
     body_type, value_c @ body_c
+  | Tuple tuple ->
+    let rec helper = function
+      | value :: rest when rest != [] ->
+        let value_type, value_c = set_equations value ctx in
+        let rest_type, rest_c = helper rest in
+        value_type :: rest_type, value_c @ rest_c
+      | value :: [] ->
+        let value_type, value_c = set_equations value ctx in
+        [ value_type ], value_c
+      | _ -> failwith "(Typecheker): Should never reach here!"
+    in
+    let type_list, c = helper tuple in
+    TTuple type_list, c
 ;;
 
 let get_type ast =
@@ -107,11 +146,4 @@ let get_type ast =
     Ok (unify (List.rev ((res_type, res_type) :: c)))
   with
   | Failure s -> Error s
-;;
-
-let rec ml_type_to_string = function
-  | TInt -> "Int"
-  | TBool -> "Bool"
-  | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
-  | TVar i -> "t" ^ string_of_int i
 ;;

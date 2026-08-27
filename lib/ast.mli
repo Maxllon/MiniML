@@ -28,5 +28,6 @@ type expr =
   | If of expr * expr * expr
   | Bin_op of bin_op * expr * expr
   | Un_op of un_op * expr
+  | Tuple of expr list
 
 val expr_to_string : expr -> string

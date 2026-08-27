@@ -28,6 +28,7 @@ type expr =
   | If of expr * expr * expr
   | Bin_op of bin_op * expr * expr
   | Un_op of un_op * expr
+  | Tuple of expr list
 
 let rec expr_to_string = function
   | Var s -> s
@@ -85,4 +86,11 @@ let rec expr_to_string = function
       | Neg -> "-"
     in
     "(" ^ string_of_op op ^ "(" ^ expr_to_string expr ^ "))"
+  | Tuple tuple ->
+    let rec helper = function
+      | first :: second :: rest -> expr_to_string first ^ ", " ^ helper (second :: rest)
+      | expr :: [] -> expr_to_string expr
+      | _ -> ""
+    in
+    "(" ^ helper tuple ^ ")"
 ;;

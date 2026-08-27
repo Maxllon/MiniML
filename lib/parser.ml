@@ -77,7 +77,24 @@ and parse_if tk_list =
           If (cond, then_expr, else_expr), rest'''''
         | _ -> failwith "expected else keyword")
      | _ -> failwith "expected then keyword")
-  | _ -> parse_eq tk_list
+  | _ -> parse_seq tk_list
+
+and parse_seq tk_list =
+  let left, rest = parse_eq tk_list in
+  let rec helper (acc : expr) tk_list =
+    match tk_list with
+    | KEYWORD COMMA :: rest ->
+      let next, rest' = parse_eq rest in
+      let res, rest'' = helper next rest' in
+      (match res with
+       | Tuple l -> Tuple (acc :: l), rest''
+       | _ -> failwith "Should never reach here!")
+    | _ -> Tuple [ acc ], tk_list
+  in
+  let res, rest = helper left rest in
+  match res with
+  | Tuple (expr :: []) -> expr, rest
+  | _ -> res, rest
 
 and parse_eq tk_list =
   let left, rest = parse_or tk_list in

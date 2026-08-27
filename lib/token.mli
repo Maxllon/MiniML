@@ -7,6 +7,7 @@ type keyword =
   | IN
   | LAMBD
   | DOT
+  | COMMA
 
 type bracket =
   | L_PAREN
