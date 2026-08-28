@@ -38,6 +38,7 @@ let rec unify = function
     then failwith "Occur check error"
     else unify (List.map (fun (a, b) -> subst_c name tp a, subst_c name tp b) rest)
   | (TArrow (l1, l2), TArrow (r1, r2)) :: rest -> unify ((l1, r1) :: (l2, r2) :: rest)
+  | (RecT (l, _), RecT (r, _)) :: rest when l = r -> unify rest
   (*danger*)
   | (TTuple l, TTuple r) :: rest ->
     let rec check_size ((l, r) : ml_type list * ml_type list) : (ml_type * ml_type) list =
@@ -134,7 +135,19 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     let type_list, c = helper tuple in
     TTuple type_list, c
   | Constr (_, tp) -> tp, []
-  | Case _ -> failwith "(typecheker): not implemented"
+  | Case (folded, cases) ->
+    let folded_type, folded_c = set_equations folded ctx in
+    let rec helper cases pref_type c : ml_type * (ml_type * ml_type) list =
+      match cases with
+      | [] -> pref_type, c
+      | (f, name, body) :: rest ->
+        let arg_type = TVar (fresh_var ()) in
+        let body_type, body_c = set_equations body ((name, arg_type) :: ctx) in
+        let f_type, f_c = set_equations f ctx in
+        let new_c = [ f_type, TArrow (arg_type, folded_type); body_type, pref_type ] in
+        helper rest body_type (body_c @ f_c @ new_c @ c)
+    in
+    helper cases (TVar (fresh_var ())) folded_c
 ;;
 
 let get_type ast =
