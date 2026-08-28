@@ -22,6 +22,7 @@ type ml_type =
   | TBool
   | TArrow of ml_type * ml_type
   | TVar of int
+  | TVarS of string
   | TTuple of ml_type list
   | RecT of string * ml_type
 

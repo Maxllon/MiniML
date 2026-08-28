@@ -14,6 +14,20 @@ and parse_expr tk_list = parse_let tk_list
 
 and parse_let tk_list =
   match tk_list with
+  | KEYWORD TYPE :: VAR type_name :: OPERATOR EQ :: rest ->
+    let constrs, rest' = parse_type_body type_name rest in
+    (match rest' with
+     | KEYWORD IN :: rest'' ->
+       let in_expr, rest''' = parse_expr rest'' in
+       let build constrs body =
+         List.fold_right
+           (fun (name, payload) acc ->
+              Let (name, Constr (name, TArrow (payload, RecT (type_name, payload))), acc))
+           constrs
+           body
+       in
+       build constrs in_expr, rest'''
+     | _ -> failwith "expected in after type declaration")
   | KEYWORD LET :: KEYWORD REC :: VAR name :: rest ->
     parse_let_body
       []
@@ -105,6 +119,52 @@ and parse_case_body tk_list =
        (constr, var, body) :: branches, rest''''
      | _ -> (constr, var, body) :: [], rest'')
   | _ -> failwith "expected => after case branch pattern"
+
+and parse_type type_name tk_list = parse_type_arrow type_name tk_list
+
+and parse_type_arrow type_name tk_list =
+  let left, rest = parse_type_tuple type_name tk_list in
+  match rest with
+  | KEYWORD ARROW :: rest' ->
+    let right, rest'' = parse_type_arrow type_name rest' in
+    TArrow (left, right), rest''
+  | _ -> left, rest
+
+and parse_type_tuple type_name tk_list =
+  let first, rest = parse_type_atom type_name tk_list in
+  let rec helper (acc : ml_type list) tk_list =
+    match tk_list with
+    | OPERATOR MULT :: rest' ->
+      let next, rest'' = parse_type_atom type_name rest' in
+      helper (next :: acc) rest''
+    | _ -> List.rev acc, tk_list
+  in
+  match helper [ first ] rest with
+  | [ single ], rest' -> single, rest'
+  | l, rest' -> TTuple l, rest'
+
+and parse_type_atom type_name tk_list =
+  match tk_list with
+  | KEYWORD BTInt :: rest -> TInt, rest
+  | KEYWORD BTBool :: rest -> TBool, rest
+  | VAR y :: rest -> if y = type_name then TVarS y, rest else failwith "unknown type"
+  | BRACKET L_PAREN :: rest ->
+    let t, rest' = parse_type type_name rest in
+    (match rest' with
+     | BRACKET R_PAREN :: rest'' -> t, rest''
+     | _ -> failwith "missing closing paren in type")
+  | _ -> failwith "error in parse_type_atom"
+
+and parse_type_body type_name tk_list =
+  match tk_list with
+  | VAR name :: KEYWORD OF :: rest ->
+    let payload, rest' = parse_type type_name rest in
+    (match rest' with
+     | KEYWORD PIPE :: rest'' ->
+       let branches, rest''' = parse_type_body type_name rest'' in
+       (name, payload) :: branches, rest'''
+     | _ -> (name, payload) :: [], rest')
+  | _ -> failwith "expected constructor of type in type body"
 
 and parse_seq tk_list =
   let left, rest = parse_eq tk_list in

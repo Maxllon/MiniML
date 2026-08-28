@@ -15,6 +15,7 @@ type keyword =
   | BIGARROW
   | PIPE
   | TYPE
+  | ARROW
 
 type bracket =
   | L_PAREN

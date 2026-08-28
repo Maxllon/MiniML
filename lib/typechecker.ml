@@ -138,6 +138,7 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     in
     let type_list, c = helper tuple in
     TTuple type_list, c
+  | _ -> failwith "not implemented"
 ;;
 
 let get_type ast =

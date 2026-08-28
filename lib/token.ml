@@ -15,6 +15,7 @@ type keyword =
   | BIGARROW
   | PIPE
   | TYPE
+  | ARROW
 
 type bracket =
   | L_PAREN
@@ -78,6 +79,7 @@ let kwFromString = function
   | "=>" -> Some BIGARROW
   | "|" -> Some PIPE
   | "type" -> Some TYPE
+  | "->" -> Some ARROW
   | "\\" -> Some LAMBD
   | "." -> Some DOT
   | "," -> Some COMMA
@@ -198,6 +200,7 @@ let tokenToString = function
   | KEYWORD BIGARROW -> "BIGARROW"
   | KEYWORD PIPE -> "PIPE"
   | KEYWORD TYPE -> "TYPE"
+  | KEYWORD ARROW -> "ARROW"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

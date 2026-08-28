@@ -62,6 +62,7 @@ let rec compile (ctx : string list) (e : expr) : term =
   | Bin_op (op, a, b) -> bin_to_term op (compile ctx a) (compile ctx b)
   | Un_op (op, expr) -> un_to_term op (compile ctx expr)
   | Tuple tuple -> compile ctx (compile_tuple tuple)
+  | _ -> failwith "not implemented"
 
 and compile_tuple = function
   | [ expr ] -> expr
