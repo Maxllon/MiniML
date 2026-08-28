@@ -1,12 +1,5 @@
 open Ast
 
-type ml_type =
-  | TInt
-  | TBool
-  | TArrow of ml_type * ml_type
-  | TVar of int
-  | TTuple of ml_type list
-
 let get_bin_type = function
   | Add | Sub | Mult | Div -> TInt, TInt, TInt
   | Eq | Neq | Lt | Le | Gt | Ge -> TInt, TInt, TBool
@@ -65,6 +58,8 @@ and ml_type_to_string = function
   | TBool -> "Bool"
   | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
   | TVar i -> "t" ^ string_of_int i
+  | TVarS s -> "s: " ^ s
+  | RecT (name, t) -> "rec " ^ name ^ "." ^ ml_type_to_string t
   | TTuple tuple ->
     let rec helper = function
       | first :: second :: rest ->
@@ -138,7 +133,8 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     in
     let type_list, c = helper tuple in
     TTuple type_list, c
-  | _ -> failwith "not implemented"
+  | Constr _ -> failwith "not implemented"
+  | Case _ -> failwith "not implemented"
 ;;
 
 let get_type ast =
