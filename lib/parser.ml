@@ -77,7 +77,34 @@ and parse_if tk_list =
           If (cond, then_expr, else_expr), rest'''''
         | _ -> failwith "expected else keyword")
      | _ -> failwith "expected then keyword")
+  | _ -> parse_case tk_list
+
+and parse_case tk_list =
+  match tk_list with
+  | KEYWORD CASE :: rest ->
+    let scrutinee, rest' = parse_expr rest in
+    (match rest' with
+     | KEYWORD OF :: rest'' ->
+       let branches, rest''' = parse_case_body rest'' in
+       Case (scrutinee, branches), rest'''
+     | _ -> failwith "expected of keyword")
   | _ -> parse_seq tk_list
+
+and parse_case_body tk_list =
+  let constr, var, rest =
+    match parse_expr tk_list with
+    | App (e, Var v), rest -> e, v, rest
+    | _, _ -> failwith "expected constructor applied to a variable in case body"
+  in
+  match rest with
+  | KEYWORD BIGARROW :: rest' ->
+    let body, rest'' = parse_expr rest' in
+    (match rest'' with
+     | KEYWORD PIPE :: rest''' ->
+       let branches, rest'''' = parse_case_body rest''' in
+       (constr, var, body) :: branches, rest''''
+     | _ -> (constr, var, body) :: [], rest'')
+  | _ -> failwith "expected => after case branch pattern"
 
 and parse_seq tk_list =
   let left, rest = parse_eq tk_list in
