@@ -105,10 +105,8 @@ let test_let () =
            , If
                ( Bin_op (Eq, Var "n", Int 0)
                , Int 1
-               , Bin_op
-                   ( Mult
-                   , Var "n"
-                   , App (Var "fact", Bin_op (Sub, Var "n", Int 1)) ) ) )
+               , Bin_op (Mult, Var "n", App (Var "fact", Bin_op (Sub, Var "n", Int 1))) )
+           )
        , Var "fact" ))
     "let rec fact n = if n=0 then 1 else n*fact(n-1) in fact";
   ()

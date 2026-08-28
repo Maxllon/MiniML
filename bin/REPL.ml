@@ -14,8 +14,14 @@ let () =
            (match Parser.parse tokens with
             | Error e -> print_endline ("Parser error: " ^ e)
             | Ok ast ->
-              let result = Interpreter.eval (Lambda.ast_to_term ast) in
-              print_endline (Lambda.term_to_string result)))
+              (match Typechecker.get_type ast with
+               | Error e -> print_endline ("Typecheker error: " ^ e)
+               | Ok tp ->
+                 let result = Interpreter.eval (Lambda.ast_to_term ast) in
+                 print_endline
+                   (Lambda.term_to_string result
+                    ^ " : "
+                    ^ Typechecker.ml_type_to_string tp))))
     done
   with
   | End_of_file -> print_endline "\nGoodbye!"

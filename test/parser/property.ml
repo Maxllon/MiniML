@@ -1,5 +1,5 @@
 open MiniML
-open QCheck
+open QCheck2
 
 let bin_op_expr_gen sub =
   let bin_ops =
@@ -41,7 +41,7 @@ let gen_var = gen_identifier |> Gen.map (fun s -> Ast.Var s)
 
 let atom_expr_gen =
   Gen.oneof
-    [ Gen.map (fun n -> Ast.Int n) Gen.nat_small
+    [ Gen.map (fun n -> Ast.Int n) Gen.small_nat
     ; Gen.map (fun var -> Ast.Var var) gen_identifier
     ; Gen.map (fun _bool -> Ast.Bool _bool) Gen.bool
     ]
@@ -94,10 +94,10 @@ let lex_and_parse s =
 ;;
 
 let pp_expr e = Ast.expr_to_string e
-let gen_expr depth = make ~print:pp_expr (expr_gen depth)
+let gen_expr depth = expr_gen depth
 
 let test_roundtrip_simple =
-  Test.make ~name:"roundtrip simple" ~count:10000 (gen_expr 3) (fun e ->
+  Test.make ~name:"roundtrip simple" ~count:10000 ~print:pp_expr (gen_expr 3) (fun e ->
     match lex_and_parse (pp_expr e) with
     | Ok _ -> true
     | Error msg ->
@@ -106,7 +106,7 @@ let test_roundtrip_simple =
 ;;
 
 let test_roundtrip_medium =
-  Test.make ~name:"roundtrip medium" ~count:10000 (gen_expr 5) (fun e ->
+  Test.make ~name:"roundtrip medium" ~count:10000 ~print:pp_expr (gen_expr 5) (fun e ->
     match lex_and_parse (pp_expr e) with
     | Ok _ -> true
     | Error msg ->
@@ -115,7 +115,7 @@ let test_roundtrip_medium =
 ;;
 
 let test_roundtrip_hard =
-  Test.make ~name:"roundtrip hard" ~count:10000 (gen_expr 10) (fun e ->
+  Test.make ~name:"roundtrip hard" ~count:10000 ~print:pp_expr (gen_expr 10) (fun e ->
     match lex_and_parse (pp_expr e) with
     | Ok _ -> true
     | Error msg ->
