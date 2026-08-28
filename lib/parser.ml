@@ -19,10 +19,18 @@ and parse_let tk_list =
     (match rest' with
      | KEYWORD IN :: rest'' ->
        let in_expr, rest''' = parse_expr rest'' in
+       let rec unfold t =
+         match t with
+         | RecT (x, TVarS y) when x = y -> TVarS y
+         | RecT (x, body) -> RecT (x, unfold body)
+         | TArrow (a, b) -> TArrow (unfold a, unfold b)
+         | TTuple items -> TTuple (List.map unfold items)
+         | other -> other
+       in
        let build constrs body =
          List.fold_right
            (fun (name, payload) acc ->
-              Let (name, Constr (name, TArrow (payload, RecT (type_name, payload))), acc))
+              Let (name, Constr (name, TArrow (payload, RecT (type_name, unfold payload))), acc))
            constrs
            body
        in
@@ -147,7 +155,7 @@ and parse_type_atom type_name tk_list =
   match tk_list with
   | KEYWORD BTInt :: rest -> TInt, rest
   | KEYWORD BTBool :: rest -> TBool, rest
-  | VAR y :: rest -> if y = type_name then TVarS y, rest else failwith "unknown type"
+  | VAR y :: rest -> if y = type_name then RecT (y, TVarS y), rest else failwith "unknown type"
   | BRACKET L_PAREN :: rest ->
     let t, rest' = parse_type type_name rest in
     (match rest' with
