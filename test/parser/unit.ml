@@ -137,11 +137,38 @@ let test_app () =
 let test_case () =
   test_parse
     "simple case"
-    (Case (Var "a", [ Var "t1", "x", Int 1; Var "t2", "y", Int 2 ]))
-    "case a of t1 x => 1 | t2 y => 2";
-  test_parse_error "case without of" "case a t1 x => 1";
-  test_parse_error "branch without var" "case a of t1 => 1";
-  test_parse_error "branch without arrow" "case a of t1 x 1";
+    (Let
+       ( "t1"
+       , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
+       , Let
+           ( "t2"
+           , Constr ("t2", TArrow (TInt, RecT ("X", TInt)))
+           , Case
+               ( Var "a"
+               , [ (Var "t1", "x", Int 1); (Var "t2", "y", Int 2) ] ) ) ))
+    "type X = t1 of Int | t2 of Int in case a of t1 x => 1 | t2 y => 2";
+  test_parse
+    "case branches sorted to canonical order"
+    (Let
+       ( "t1"
+       , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
+       , Let
+           ( "t2"
+           , Constr ("t2", TArrow (TInt, RecT ("X", TInt)))
+           , Case
+               ( Var "a"
+               , [ (Var "t1", "x", Int 1); (Var "t2", "y", Int 2) ] ) ) ))
+    "type X = t1 of Int | t2 of Int in case a of t2 y => 2 | t1 x => 1";
+  test_parse_error
+    "case not exhaustive"
+    "type X = t1 of Int | t2 of Int in case a of t1 x => 1";
+  test_parse_error
+    "case unknown constructor"
+    "type X = t1 of Int in case a of t1 x => 1 | foo y => 2";
+  test_parse_error "case without type decl" "case a of t1 x => 1";
+  test_parse_error "case without of" "type X = t1 of Int in case a t1 x => 1";
+  test_parse_error "branch without var" "type X = t1 of Int in case a of t1 => 1";
+  test_parse_error "branch without arrow" "type X = t1 of Int in case a of t1 x 1";
   ()
 ;;
 

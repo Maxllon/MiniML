@@ -1,24 +1,58 @@
 open Ast
 open Token
 
-let rec parse tk_list =
+type constr_reg = (string * (int * int)) list
+
+let sort_and_check (reg : constr_reg) (branches : (expr * string * expr) list) :
+  (expr * string * expr) list =
+  let name_of = function
+    | Var n -> n
+    | _ -> failwith "case branch must reference a constructor by name"
+  in
+  let indexed =
+    List.map
+      (fun (e, var, body) ->
+        let name = name_of e in
+        (match List.assoc_opt name reg with
+         | Some (idx, total) -> idx, total, (e, var, body)         | None -> failwith ("unknown constructor: " ^ name)))
+      branches
+  in
+  let total =
+    match indexed with
+    | (_, total, _) :: _ -> total
+    | [] -> failwith "case has no branches"
+  in
+  if List.length indexed <> total
+  then
+    failwith
+      ("case is not exhaustive: " ^ string_of_int (List.length indexed) ^ " branch(es), expected "
+      ^ string_of_int total)
+  else
+    let sorted = List.sort (fun (i1, _, _) (i2, _, _) -> Int.compare i1 i2) indexed in
+    let sorted_indices = List.map (fun (i, _, _) -> i) sorted in
+    if sorted_indices = List.init total (fun i -> i)
+    then List.map (fun (_, _, branch) -> branch) sorted
+    else failwith "case constructors are duplicated or not contiguous"
+
+let rec parse_with_reg reg tk_list =
   try
-    match parse_expr tk_list with
+    match parse_expr reg tk_list with
     | ast, [] -> Ok ast
     | ast, [ EOF ] -> Ok ast
     | _, _ -> Error "Extra tokens"
   with
   | Failure s -> Error s
 
-and parse_expr tk_list = parse_let tk_list
+and parse_expr reg tk_list = parse_let reg tk_list
 
-and parse_let tk_list =
+and parse_let reg tk_list =
   match tk_list with
   | KEYWORD TYPE :: VAR type_name :: OPERATOR EQ :: rest ->
     let constrs, rest' = parse_type_body type_name rest in
     (match rest' with
      | KEYWORD IN :: rest'' ->
-       let in_expr, rest''' = parse_expr rest'' in
+       let reg' = List.mapi (fun i (name, _) -> name, (i, List.length constrs)) constrs in
+       let in_expr, rest''' = parse_expr reg' rest'' in
        let rec unfold t =
          match t with
          | RecT (x, TVarS y) when x = y -> TVarS y
@@ -30,10 +64,10 @@ and parse_let tk_list =
        let build constrs body =
          List.fold_right
            (fun (name, payload) acc ->
-              Let
-                ( name
-                , Constr (name, TArrow (payload, RecT (type_name, unfold payload)))
-                , acc ))
+             Let
+               ( name
+               , Constr (name, TArrow (payload, RecT (type_name, unfold payload)))
+               , acc ))
            constrs
            body
        in
@@ -41,23 +75,25 @@ and parse_let tk_list =
      | _ -> failwith "expected in after type declaration")
   | KEYWORD LET :: KEYWORD REC :: VAR name :: rest ->
     parse_let_body
+      reg
       []
       (fun (name', expr', in_expr') -> Let_rec (name', expr', in_expr'))
       name
       rest
   | KEYWORD LET :: VAR name :: rest ->
     parse_let_body
+      reg
       []
       (fun (name', expr', in_expr') -> Let (name', expr', in_expr'))
       name
       rest
-  | _ -> parse_fun tk_list
+  | _ -> parse_fun reg tk_list
 
-and parse_let_body args constructor name tk_list =
+and parse_let_body reg args constructor name tk_list =
   match tk_list with
-  | VAR n :: r -> parse_let_body (n :: args) constructor name r
+  | VAR n :: r -> parse_let_body reg (n :: args) constructor name r
   | OPERATOR EQ :: r ->
-    let value, rest = parse_expr r in
+    let value, rest = parse_expr reg r in
     let rec build args' expr' =
       match args' with
       | [] -> expr'
@@ -66,21 +102,21 @@ and parse_let_body args constructor name tk_list =
     let value = build args value in
     (match rest with
      | KEYWORD IN :: rest' ->
-       let body, rest'' = parse_expr rest' in
+       let body, rest'' = parse_expr reg rest' in
        constructor (name, value, body), rest''
      | _ -> failwith "Expected in after let/let rec")
   | _ -> failwith "Expected \"=\" after let/let rec"
 
-and parse_fun tk_list =
+and parse_fun reg tk_list =
   match tk_list with
-  | KEYWORD LAMBD :: rest -> parse_args [] rest
-  | _ -> parse_if tk_list
+  | KEYWORD LAMBD :: rest -> parse_args reg [] rest
+  | _ -> parse_if reg tk_list
 
-and parse_args args tk_list =
+and parse_args reg args tk_list =
   match tk_list with
-  | VAR name :: rest -> parse_args (name :: args) rest
+  | VAR name :: rest -> parse_args reg (name :: args) rest
   | KEYWORD DOT :: rest ->
-    let expr, rest' = parse_expr rest in
+    let expr, rest' = parse_expr reg rest in
     let rec build args' expr' =
       match args' with
       | [] -> expr'
@@ -89,44 +125,44 @@ and parse_args args tk_list =
     build (List.rev args) expr, rest'
   | _ -> failwith "Expected args or DOT keyword"
 
-and parse_if tk_list =
+and parse_if reg tk_list =
   match tk_list with
   | KEYWORD IF :: rest ->
-    let cond, rest' = parse_expr rest in
+    let cond, rest' = parse_expr reg rest in
     (match rest' with
      | KEYWORD THEN :: rest'' ->
-       let then_expr, rest''' = parse_expr rest'' in
+       let then_expr, rest''' = parse_expr reg rest'' in
        (match rest''' with
         | KEYWORD ELSE :: rest'''' ->
-          let else_expr, rest''''' = parse_expr rest'''' in
+          let else_expr, rest''''' = parse_expr reg rest'''' in
           If (cond, then_expr, else_expr), rest'''''
         | _ -> failwith "expected else keyword")
      | _ -> failwith "expected then keyword")
-  | _ -> parse_case tk_list
+  | _ -> parse_case reg tk_list
 
-and parse_case tk_list =
+and parse_case reg tk_list =
   match tk_list with
   | KEYWORD CASE :: rest ->
-    let scrutinee, rest' = parse_expr rest in
+    let scrutinee, rest' = parse_expr reg rest in
     (match rest' with
      | KEYWORD OF :: rest'' ->
-       let branches, rest''' = parse_case_body rest'' in
-       Case (scrutinee, branches), rest'''
+       let branches, rest''' = parse_case_body reg rest'' in
+       Case (scrutinee, sort_and_check reg branches), rest'''
      | _ -> failwith "expected of keyword")
-  | _ -> parse_seq tk_list
+  | _ -> parse_seq reg tk_list
 
-and parse_case_body tk_list =
+and parse_case_body reg tk_list =
   let constr, var, rest =
-    match parse_expr tk_list with
+    match parse_expr reg tk_list with
     | App (e, Var v), rest -> e, v, rest
     | _, _ -> failwith "expected constructor applied to a variable in case body"
   in
   match rest with
   | KEYWORD BIGARROW :: rest' ->
-    let body, rest'' = parse_expr rest' in
+    let body, rest'' = parse_expr reg rest' in
     (match rest'' with
      | KEYWORD PIPE :: rest''' ->
-       let branches, rest'''' = parse_case_body rest''' in
+       let branches, rest'''' = parse_case_body reg rest''' in
        (constr, var, body) :: branches, rest''''
      | _ -> (constr, var, body) :: [], rest'')
   | _ -> failwith "expected => after case branch pattern"
@@ -178,12 +214,12 @@ and parse_type_body type_name tk_list =
      | _ -> (name, payload) :: [], rest')
   | _ -> failwith "expected constructor of type in type body"
 
-and parse_seq tk_list =
-  let left, rest = parse_eq tk_list in
+and parse_seq reg tk_list =
+  let left, rest = parse_eq reg tk_list in
   let rec helper (acc : expr) tk_list =
     match tk_list with
     | KEYWORD COMMA :: rest ->
-      let next, rest' = parse_eq rest in
+      let next, rest' = parse_eq reg rest in
       let res, rest'' = helper next rest' in
       (match res with
        | Tuple l -> Tuple (acc :: l), rest''
@@ -195,108 +231,110 @@ and parse_seq tk_list =
   | Tuple (expr :: []) -> expr, rest
   | _ -> res, rest
 
-and parse_eq tk_list =
-  let left, rest = parse_or tk_list in
+and parse_eq reg tk_list =
+  let left, rest = parse_or reg tk_list in
   match rest with
   | OPERATOR EQ :: rest' ->
-    let right, rest'' = parse_eq rest' in
+    let right, rest'' = parse_eq reg rest' in
     Bin_op (Eq, left, right), rest''
   | OPERATOR NEQ :: rest' ->
-    let right, rest'' = parse_eq rest' in
+    let right, rest'' = parse_eq reg rest' in
     Bin_op (Neq, left, right), rest''
   | _ -> left, rest
 
-and parse_or tk_list =
-  let left, rest = parse_xor tk_list in
+and parse_or reg tk_list =
+  let left, rest = parse_xor reg tk_list in
   match rest with
   | OPERATOR OR :: rest' ->
-    let right, rest'' = parse_or rest' in
+    let right, rest'' = parse_or reg rest' in
     Bin_op (Or, left, right), rest''
   | _ -> left, rest
 
-and parse_xor tk_list =
-  let left, rest = parse_and tk_list in
+and parse_xor reg tk_list =
+  let left, rest = parse_and reg tk_list in
   match rest with
   | OPERATOR XOR :: rest' ->
-    let right, rest'' = parse_xor rest' in
+    let right, rest'' = parse_xor reg rest' in
     Bin_op (Xor, left, right), rest''
   | _ -> left, rest
 
-and parse_and tk_list =
-  let left, rest = parse_comp tk_list in
+and parse_and reg tk_list =
+  let left, rest = parse_comp reg tk_list in
   match rest with
   | OPERATOR AND :: rest' ->
-    let right, rest'' = parse_and rest' in
+    let right, rest'' = parse_and reg rest' in
     Bin_op (And, left, right), rest''
   | _ -> left, rest
 
-and parse_comp tk_list =
-  let left, rest = parse_add tk_list in
+and parse_comp reg tk_list =
+  let left, rest = parse_add reg tk_list in
   match rest with
   | OPERATOR LE :: rest' ->
-    let right, rest'' = parse_comp rest' in
+    let right, rest'' = parse_comp reg rest' in
     Bin_op (Le, left, right), rest''
   | OPERATOR LT :: rest' ->
-    let right, rest'' = parse_comp rest' in
+    let right, rest'' = parse_comp reg rest' in
     Bin_op (Lt, left, right), rest''
   | OPERATOR GE :: rest' ->
-    let right, rest'' = parse_comp rest' in
+    let right, rest'' = parse_comp reg rest' in
     Bin_op (Ge, left, right), rest''
   | OPERATOR GT :: rest' ->
-    let right, rest'' = parse_comp rest' in
+    let right, rest'' = parse_comp reg rest' in
     Bin_op (Gt, left, right), rest''
   | _ -> left, rest
 
-and parse_add tk_list =
-  let left, rest = parse_mult tk_list in
+and parse_add reg tk_list =
+  let left, rest = parse_mult reg tk_list in
   match rest with
   | OPERATOR PLUS :: rest' ->
-    let right, rest'' = parse_add rest' in
+    let right, rest'' = parse_add reg rest' in
     Bin_op (Add, left, right), rest''
   | OPERATOR MINUS :: rest' ->
-    let right, rest'' = parse_add rest' in
+    let right, rest'' = parse_add reg rest' in
     Bin_op (Sub, left, right), rest''
   | _ -> left, rest
 
-and parse_mult tk_list =
-  let left, rest = parse_un tk_list in
+and parse_mult reg tk_list =
+  let left, rest = parse_un reg tk_list in
   match rest with
   | OPERATOR MULT :: rest' ->
-    let right, rest'' = parse_mult rest' in
+    let right, rest'' = parse_mult reg rest' in
     Bin_op (Mult, left, right), rest''
   | OPERATOR DIV :: rest' ->
-    let right, rest'' = parse_mult rest' in
+    let right, rest'' = parse_mult reg rest' in
     Bin_op (Div, left, right), rest''
   | _ -> left, rest
 
-and parse_un tk_list =
+and parse_un reg tk_list =
   match tk_list with
   | OPERATOR NOT :: rest ->
-    let expr, rest' = parse_atom rest in
+    let expr, rest' = parse_atom reg rest in
     Un_op (Not, expr), rest'
   | OPERATOR MINUS :: rest ->
-    let expr, rest' = parse_atom rest in
+    let expr, rest' = parse_atom reg rest in
     Un_op (Neg, expr), rest'
-  | _ -> parse_app tk_list
+  | _ -> parse_app reg tk_list
 
-and parse_app tk_list =
-  let expr, rest = parse_atom tk_list in
+and parse_app reg tk_list =
+  let expr, rest = parse_atom reg tk_list in
   let rec build_app expr' rest' =
     try
-      let atom, rest'' = parse_atom rest' in
+      let atom, rest'' = parse_atom reg rest' in
       build_app (App (expr', atom)) rest''
     with
     | Failure _ -> expr', rest'
   in
   build_app expr rest
 
-and parse_atom = function
+and parse_atom reg = function
   | INT n :: rest -> Int n, rest
   | VAR s :: rest -> Var s, rest
   | BOOLEAN a :: rest -> Bool a, rest
   | BRACKET L_PAREN :: rest ->
-    (match parse_expr rest with
+    (match parse_expr reg rest with
      | expr, BRACKET R_PAREN :: rest' -> expr, rest'
      | _, _ -> failwith "Missing closing parenthesis")
   | _ -> failwith "Error in parse_atom"
 ;;
+
+let parse tk_list = parse_with_reg [] tk_list
