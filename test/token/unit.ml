@@ -52,6 +52,12 @@ let test_keywords () =
   test_token (2, KEYWORD IN) "in";
   test_token (1, KEYWORD LAMBD) "\\";
   test_token (1, KEYWORD DOT) ".";
+  test_token (2, KEYWORD ARROW) "->";
+  test_token (2, KEYWORD BIGARROW) "=>";
+  test_token (1, KEYWORD PIPE) "|";
+  test_token (4, KEYWORD TYPE) "type";
+  test_token (4, KEYWORD CASE) "case";
+  test_token (2, KEYWORD OF) "of";
   test_token (4, VAR "letx") "letx"
 ;;
 

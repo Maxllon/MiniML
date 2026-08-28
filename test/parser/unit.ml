@@ -145,6 +145,47 @@ let test_case () =
   ()
 ;;
 
+let test_typedecl () =
+  test_parse
+    "single constructor"
+    (Let ("t1", Constr ("t1", TArrow (TInt, RecT ("X", TInt))), Var "t1"))
+    "type X = t1 of Int in t1";
+  test_parse
+    "multiple constructors"
+    (Let
+       ( "t1"
+       , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
+       , Let
+           ( "t2"
+           , Constr ("t2", TArrow (TBool, RecT ("X", TBool)))
+           , Var "t1" ) ))
+    "type X = t1 of Int | t2 of Bool in t1";
+  test_parse
+    "tuple and arrow precedence"
+    (Let
+       ( "t1"
+       , Constr
+           ( "t1"
+           , TArrow (TArrow (TTuple [ TInt; TBool ], TVarS "X"), RecT ("X", TArrow (TTuple [ TInt; TBool ], TVarS "X")))
+           )
+       , Var "t1" ))
+    "type X = t1 of Int * Bool -> X in t1";
+  test_parse
+    "recursive reference in payload"
+    (Let ("t1", Constr ("t1", TArrow (TVarS "X", RecT ("X", TVarS "X"))), Var "t1"))
+    "type X = t1 of X in t1";
+  test_parse
+    "parens in type"
+    (Let
+       ( "t1"
+       , Constr ("t1", TArrow (TArrow (TInt, TBool), RecT ("X", TArrow (TInt, TBool))))
+       , Var "t1" ))
+    "type X = t1 of (Int -> Bool) in t1";
+  test_parse_error "type without in" "type X = t1 of Int t1";
+  test_parse_error "unknown type in payload" "type X = t1 of Y in t1";
+  ()
+;;
+
 let suite =
   [ "precedence", `Quick, test_precedence
   ; "unary", `Quick, test_un
@@ -154,6 +195,7 @@ let suite =
   ; "atom", `Quick, test_atom
   ; "app", `Quick, test_app
   ; "case", `Quick, test_case
+  ; "typedecl", `Quick, test_typedecl
   ]
 ;;
 

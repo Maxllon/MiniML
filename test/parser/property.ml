@@ -25,7 +25,9 @@ let bin_op_expr_gen sub =
 let is_keyword s =
   List.mem
     (String.lowercase_ascii s)
-    [ "let"; "rec"; "if"; "then"; "else"; "in"; "or"; "and"; "xor"; "not" ]
+    [ "let"; "rec"; "if"; "then"; "else"; "in"; "or"; "and"; "xor"; "not"
+    ; "int"; "bool"; "case"; "of"; "type"; "true"; "false"
+    ]
 ;;
 
 let gen_identifier =
