@@ -134,6 +134,17 @@ let test_app () =
   ()
 ;;
 
+let test_case () =
+  test_parse
+    "simple case"
+    (Case (Var "a", [ (Var "t1", "x", Int 1); (Var "t2", "y", Int 2) ]))
+    "case a of t1 x => 1 | t2 y => 2";
+  test_parse_error "case without of" "case a t1 x => 1";
+  test_parse_error "branch without var" "case a of t1 => 1";
+  test_parse_error "branch without arrow" "case a of t1 x 1";
+  ()
+;;
+
 let suite =
   [ "precedence", `Quick, test_precedence
   ; "unary", `Quick, test_un
@@ -142,6 +153,7 @@ let suite =
   ; "fun", `Quick, test_fun
   ; "atom", `Quick, test_atom
   ; "app", `Quick, test_app
+  ; "case", `Quick, test_case
   ]
 ;;
 
