@@ -17,6 +17,14 @@ type un_op =
   | Not
   | Neg
 
+type ml_type =
+  | TInt
+  | TBool
+  | TArrow of ml_type * ml_type
+  | TVar of int
+  | TTuple of ml_type list
+  | RecT of string * ml_type
+
 type expr =
   | Var of string
   | Int of int
@@ -29,6 +37,8 @@ type expr =
   | Bin_op of bin_op * expr * expr
   | Un_op of un_op * expr
   | Tuple of expr list
+  | Constr of string * ml_type
+  | Case of expr * (expr * expr) list
 
 let rec expr_to_string = function
   | Var s -> s
@@ -93,4 +103,18 @@ let rec expr_to_string = function
       | _ -> ""
     in
     "(" ^ helper tuple ^ ")"
+  | Constr (name, _) -> name
+  | Case (scrutinee, branches) ->
+    let rec string_of_branches = function
+      | (lhs, body) :: rest ->
+        let pat =
+          match lhs with
+          | App (Constr (cname, _), Var var) -> cname ^ " " ^ var
+          | _ -> "(" ^ expr_to_string lhs ^ ")"
+        in
+        pat ^ " => " ^ expr_to_string body
+        ^ if rest = [] then "" else " | " ^ string_of_branches rest
+      | [] -> ""
+    in
+    "(case " ^ expr_to_string scrutinee ^ " of " ^ string_of_branches branches ^ ")"
 ;;

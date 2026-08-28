@@ -8,6 +8,13 @@ type keyword =
   | LAMBD
   | DOT
   | COMMA
+  | BTInt
+  | BTBool
+  | CASE
+  | OF
+  | BIGARROW
+  | PIPE
+  | TYPE
 
 type bracket =
   | L_PAREN
@@ -64,6 +71,13 @@ let kwFromString = function
   | "then" -> Some THEN
   | "else" -> Some ELSE
   | "in" -> Some IN
+  | "Int" -> Some BTInt
+  | "Bool" -> Some BTBool
+  | "case" -> Some CASE
+  | "of" -> Some OF
+  | "=>" -> Some BIGARROW
+  | "|" -> Some PIPE
+  | "type" -> Some TYPE
   | "\\" -> Some LAMBD
   | "." -> Some DOT
   | "," -> Some COMMA
@@ -177,6 +191,13 @@ let tokenToString = function
   | KEYWORD LAMBD -> "LAMBD"
   | KEYWORD DOT -> "DOT"
   | KEYWORD COMMA -> "COMMA"
+  | KEYWORD BTInt -> "Int"
+  | KEYWORD BTBool -> "Bool"
+  | KEYWORD CASE -> "CASE"
+  | KEYWORD OF -> "OF"
+  | KEYWORD BIGARROW -> "BIGARROW"
+  | KEYWORD PIPE -> "PIPE"
+  | KEYWORD TYPE -> "TYPE"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

@@ -8,6 +8,13 @@ type keyword =
   | LAMBD
   | DOT
   | COMMA
+  | BTInt
+  | BTBool
+  | CASE
+  | OF 
+  | BIGARROW
+  | PIPE
+  | TYPE
 
 type bracket =
   | L_PAREN
