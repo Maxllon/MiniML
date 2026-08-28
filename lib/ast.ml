@@ -108,7 +108,11 @@ let rec expr_to_string = function
   | Case (scrutinee, branches) ->
     let rec string_of_branches = function
       | (cname, var, body) :: rest ->
-        expr_to_string cname ^ " " ^ var ^ " => " ^ expr_to_string body
+        expr_to_string cname
+        ^ " "
+        ^ var
+        ^ " => "
+        ^ expr_to_string body
         ^ if rest = [] then "" else " | " ^ string_of_branches rest
       | [] -> ""
     in

@@ -17,6 +17,7 @@ let () =
               (match Typechecker.get_type ast with
                | Error e -> print_endline ("Typecheker error: " ^ e)
                | Ok tp ->
+                 print_endline (Typechecker.ml_type_to_string tp);
                  let result = Interpreter.eval (Lambda.ast_to_term ast) in
                  print_endline
                    (Lambda.term_to_string result

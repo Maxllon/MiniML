@@ -137,7 +137,7 @@ let test_app () =
 let test_case () =
   test_parse
     "simple case"
-    (Case (Var "a", [ (Var "t1", "x", Int 1); (Var "t2", "y", Int 2) ]))
+    (Case (Var "a", [ Var "t1", "x", Int 1; Var "t2", "y", Int 2 ]))
     "case a of t1 x => 1 | t2 y => 2";
   test_parse_error "case without of" "case a t1 x => 1";
   test_parse_error "branch without var" "case a of t1 => 1";
@@ -155,10 +155,7 @@ let test_typedecl () =
     (Let
        ( "t1"
        , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
-       , Let
-           ( "t2"
-           , Constr ("t2", TArrow (TBool, RecT ("X", TBool)))
-           , Var "t1" ) ))
+       , Let ("t2", Constr ("t2", TArrow (TBool, RecT ("X", TBool))), Var "t1") ))
     "type X = t1 of Int | t2 of Bool in t1";
   test_parse
     "tuple and arrow precedence"
@@ -166,13 +163,17 @@ let test_typedecl () =
        ( "t1"
        , Constr
            ( "t1"
-           , TArrow (TArrow (TTuple [ TInt; TBool ], TVarS "X"), RecT ("X", TArrow (TTuple [ TInt; TBool ], TVarS "X")))
-           )
+           , TArrow
+               ( TArrow (TTuple [ TInt; TBool ], RecT ("X", TVarS "X"))
+               , RecT ("X", TArrow (TTuple [ TInt; TBool ], TVarS "X")) ) )
        , Var "t1" ))
     "type X = t1 of Int * Bool -> X in t1";
   test_parse
     "recursive reference in payload"
-    (Let ("t1", Constr ("t1", TArrow (TVarS "X", RecT ("X", TVarS "X"))), Var "t1"))
+    (Let
+       ( "t1"
+       , Constr ("t1", TArrow (RecT ("X", TVarS "X"), RecT ("X", TVarS "X")))
+       , Var "t1" ))
     "type X = t1 of X in t1";
   test_parse
     "parens in type"
@@ -181,6 +182,17 @@ let test_typedecl () =
        , Constr ("t1", TArrow (TArrow (TInt, TBool), RecT ("X", TArrow (TInt, TBool))))
        , Var "t1" ))
     "type X = t1 of (Int -> Bool) in t1";
+  test_parse
+    "recursive tuple payload"
+    (Let
+       ( "val"
+       , Constr
+           ( "val"
+           , TArrow
+               ( TTuple [ TInt; RecT ("a", TVarS "a") ]
+               , RecT ("a", TTuple [ TInt; TVarS "a" ]) ) )
+       , Var "val" ))
+    "type a = val of Int * a in val";
   test_parse_error "type without in" "type X = t1 of Int t1";
   test_parse_error "unknown type in payload" "type X = t1 of Y in t1";
   ()

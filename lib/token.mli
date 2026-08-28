@@ -11,7 +11,7 @@ type keyword =
   | BTInt
   | BTBool
   | CASE
-  | OF 
+  | OF
   | BIGARROW
   | PIPE
   | TYPE
