@@ -133,8 +133,8 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     in
     let type_list, c = helper tuple in
     TTuple type_list, c
-  | Constr _ -> failwith "not implemented"
-  | Case _ -> failwith "not implemented"
+  | Constr (_, tp) -> tp, []
+  | Case _ -> failwith "(typecheker): not implemented"
 ;;
 
 let get_type ast =
