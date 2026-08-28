@@ -38,7 +38,7 @@ type expr =
   | Un_op of un_op * expr
   | Tuple of expr list
   | Constr of string * ml_type
-  | Case of expr * (expr * expr) list
+  | Case of expr * (expr * string * expr) list
 
 let rec expr_to_string = function
   | Var s -> s
@@ -106,13 +106,8 @@ let rec expr_to_string = function
   | Constr (name, _) -> name
   | Case (scrutinee, branches) ->
     let rec string_of_branches = function
-      | (lhs, body) :: rest ->
-        let pat =
-          match lhs with
-          | App (Constr (cname, _), Var var) -> cname ^ " " ^ var
-          | _ -> "(" ^ expr_to_string lhs ^ ")"
-        in
-        pat ^ " => " ^ expr_to_string body
+      | (cname, var, body) :: rest ->
+        expr_to_string cname ^ " " ^ var ^ " => " ^ expr_to_string body
         ^ if rest = [] then "" else " | " ^ string_of_branches rest
       | [] -> ""
     in
