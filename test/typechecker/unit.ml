@@ -9,9 +9,7 @@ let rec alpha_eq acc t1 t2 =
     (match List.assoc_opt i1 acc with
      | Some i2' -> if i2 = i2' then Some acc else None
      | None ->
-       if List.exists (fun (_, k) -> k = i2) acc
-       then None
-       else Some ((i1, i2) :: acc))
+       if List.exists (fun (_, k) -> k = i2) acc then None else Some ((i1, i2) :: acc))
   | TArrow (l1, r1), TArrow (l2, r2) ->
     (match alpha_eq acc l1 l2 with
      | Some acc' -> alpha_eq acc' r1 r2
@@ -19,16 +17,22 @@ let rec alpha_eq acc t1 t2 =
   | TTuple ts1, TTuple ts2 when List.length ts1 = List.length ts2 ->
     List.fold_left2
       (fun acc_opt t1 t2 ->
-        match acc_opt with
-        | None -> None
-        | Some acc' -> alpha_eq acc' t1 t2)
-      (Some acc) ts1 ts2
+         match acc_opt with
+         | None -> None
+         | Some acc' -> alpha_eq acc' t1 t2)
+      (Some acc)
+      ts1
+      ts2
   | RecT (n1, t1), RecT (n2, t2) when String.equal n1 n2 -> alpha_eq acc t1 t2
   | TVarS s1, TVarS s2 -> if String.equal s1 s2 then Some acc else None
   | _ -> None
 ;;
 
-let types_equal t1 t2 = match alpha_eq [] t1 t2 with Some _ -> true | None -> false
+let types_equal t1 t2 =
+  match alpha_eq [] t1 t2 with
+  | Some _ -> true
+  | None -> false
+;;
 
 let pp_type_result fmt = function
   | Ok t -> Format.fprintf fmt "Ok %s" (Typechecker.ml_type_to_string t)
@@ -36,13 +40,11 @@ let pp_type_result fmt = function
 ;;
 
 let type_result_testable =
-  testable
-    pp_type_result
-    (fun a b ->
-      match a, b with
-      | Ok t1, Ok t2 -> types_equal t1 t2
-      | Error e1, Error e2 -> String.equal e1 e2
-      | _ -> false)
+  testable pp_type_result (fun a b ->
+    match a, b with
+    | Ok t1, Ok t2 -> types_equal t1 t2
+    | Error e1, Error e2 -> String.equal e1 e2
+    | _ -> false)
 ;;
 
 let typecheck src =
@@ -54,17 +56,24 @@ let typecheck src =
      | Ok ast -> Typechecker.get_type ast)
 ;;
 
-let check_ok name expected src = check type_result_testable name (Ok expected) (typecheck src)
+let check_ok name expected src =
+  check type_result_testable name (Ok expected) (typecheck src)
+;;
 
 let check_error name src =
   match typecheck src with
   | Error _ -> ()
   | Ok t ->
     fail
-      (Printf.sprintf "%s: expected a type error but got %s" name (Typechecker.ml_type_to_string t))
+      (Printf.sprintf
+         "%s: expected a type error but got %s"
+         name
+         (Typechecker.ml_type_to_string t))
 ;;
 
-let check_error_msg name msg src = check type_result_testable name (Error msg) (typecheck src)
+let check_error_msg name msg src =
+  check type_result_testable name (Error msg) (typecheck src)
+;;
 
 let test_constants () =
   check_ok "int literal" TInt "5";
@@ -138,9 +147,13 @@ let test_variables_and_let () =
 let test_let_rec () =
   check_ok "recursive value unused" TInt "let rec x = x in 1";
   check_ok "recursive value used" TInt "let rec x = 1 in x";
-  check_ok "factorial function type" (TArrow (TInt, TInt))
+  check_ok
+    "factorial function type"
+    (TArrow (TInt, TInt))
     "let rec fact n = if n=0 then 1 else n*fact(n-1) in fact";
-  check_ok "factorial applied" TInt
+  check_ok
+    "factorial applied"
+    TInt
     "let rec fact n = if n=0 then 1 else n*fact(n-1) in fact 5";
   check_error "rec value not a function" "let rec f = 1 in f 2";
   check_error_msg "infinite type" "Occur check error" "let rec x = \\y.x in x";
@@ -181,22 +194,34 @@ let test_tuples () =
 ;;
 
 let test_case () =
-  check_ok "constructor TInt" (TArrow (TInt, RecT ("X", TInt)))
+  check_ok
+    "constructor TInt"
+    (TArrow (TInt, RecT ("X", TInt)))
     "type X = t1 of Int | t2 of Int in t1";
-  check_ok "constructor with Bool payload" (TArrow (TBool, RecT ("X", TBool)))
+  check_ok
+    "constructor with Bool payload"
+    (TArrow (TBool, RecT ("X", TBool)))
     "type X = t1 of Int | t2 of Bool in t2";
   check_ok "constructor applied" (RecT ("X", TInt)) "type X = t1 of Int in t1 5";
-  check_ok "case branches same result" TInt
+  check_ok
+    "case branches same result"
+    TInt
     "type X = t1 of Int | t2 of Int in case (t1 5) of t1 x => x | t2 y => y";
-  check_ok "case different payloads" TInt
-    "type X = t1 of Int | t2 of Bool in case (t1 5) of t1 x => 0 | t2 y => if y then 1 else 0";
-  check_ok "single constructor case" TInt
-    "type X = t1 of Int in case (t1 5) of t1 x => x";
-  check_ok "case with varying branch bodies" TInt
+  check_ok
+    "case different payloads"
+    TInt
+    "type X = t1 of Int | t2 of Bool in case (t1 5) of t1 x => 0 | t2 y => if y then 1 \
+     else 0";
+  check_ok "single constructor case" TInt "type X = t1 of Int in case (t1 5) of t1 x => x";
+  check_ok
+    "case with varying branch bodies"
+    TInt
     "type X = t1 of Int | t2 of Bool in case (t1 5) of t1 x => 1 | t2 y => 2";
-  check_error "branch results have different types"
+  check_error
+    "branch results have different types"
     "type X = t1 of Int | t2 of Bool in case (t1 5) of t1 x => x | t2 y => y";
-  check_error "constructor arity mismatch"
+  check_error
+    "constructor arity mismatch"
     "type X = t1 of Int | t2 of Int in case (t1 (1,2)) of t1 x => 0 | t2 y => y";
   check_error "wrong constructor argument type" "type X = t1 of Int in t1 true";
   ()
@@ -206,18 +231,10 @@ let test_to_string () =
   let t = testable Format.pp_print_string String.equal in
   check t "int" "Int" (Typechecker.ml_type_to_string TInt);
   check t "arrow" "(Int -> Bool)" (Typechecker.ml_type_to_string (TArrow (TInt, TBool)));
-  check
-    t
-    "tuple"
-    "(Int * Bool)"
-    (Typechecker.ml_type_to_string (TTuple [ TInt; TBool ]));
+  check t "tuple" "(Int * Bool)" (Typechecker.ml_type_to_string (TTuple [ TInt; TBool ]));
   check t "type variable" "t3" (Typechecker.ml_type_to_string (TVar 3));
   check t "named type variable" "s: X" (Typechecker.ml_type_to_string (TVarS "X"));
-  check
-    t
-    "recursive type"
-    "rec X.Int"
-    (Typechecker.ml_type_to_string (RecT ("X", TInt)));
+  check t "recursive type" "rec X.Int" (Typechecker.ml_type_to_string (RecT ("X", TInt)));
   check
     t
     "recursive arrow type"
