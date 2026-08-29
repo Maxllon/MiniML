@@ -134,7 +134,7 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     in
     let type_list, c = helper tuple in
     TTuple type_list, c
-  | Constr (_, tp) -> tp, []
+  | Constr (_, _, _, tp) -> tp, []
   | Case (folded, cases) ->
     let folded_type, folded_c = set_equations folded ctx in
     let rec helper cases pref_type c : ml_type * (ml_type * ml_type) list =

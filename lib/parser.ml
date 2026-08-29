@@ -3,8 +3,9 @@ open Token
 
 type constr_reg = (string * (int * int)) list
 
-let sort_and_check (reg : constr_reg) (branches : (expr * string * expr) list) :
-  (expr * string * expr) list =
+let sort_and_check (reg : constr_reg) (branches : (expr * string * expr) list)
+  : (expr * string * expr) list
+  =
   let name_of = function
     | Var n -> n
     | _ -> failwith "case branch must reference a constructor by name"
@@ -12,9 +13,10 @@ let sort_and_check (reg : constr_reg) (branches : (expr * string * expr) list) :
   let indexed =
     List.map
       (fun (e, var, body) ->
-        let name = name_of e in
-        (match List.assoc_opt name reg with
-         | Some (idx, total) -> idx, total, (e, var, body)         | None -> failwith ("unknown constructor: " ^ name)))
+         let name = name_of e in
+         match List.assoc_opt name reg with
+         | Some (idx, total) -> idx, total, (e, var, body)
+         | None -> failwith ("unknown constructor: " ^ name))
       branches
   in
   let total =
@@ -25,14 +27,17 @@ let sort_and_check (reg : constr_reg) (branches : (expr * string * expr) list) :
   if List.length indexed <> total
   then
     failwith
-      ("case is not exhaustive: " ^ string_of_int (List.length indexed) ^ " branch(es), expected "
-      ^ string_of_int total)
-  else
+      ("case is not exhaustive: "
+       ^ string_of_int (List.length indexed)
+       ^ " branch(es), expected "
+       ^ string_of_int total)
+  else (
     let sorted = List.sort (fun (i1, _, _) (i2, _, _) -> Int.compare i1 i2) indexed in
     let sorted_indices = List.map (fun (i, _, _) -> i) sorted in
     if sorted_indices = List.init total (fun i -> i)
     then List.map (fun (_, _, branch) -> branch) sorted
-    else failwith "case constructors are duplicated or not contiguous"
+    else failwith "case constructors are duplicated or not contiguous")
+;;
 
 let rec parse_with_reg reg tk_list =
   try
@@ -64,10 +69,12 @@ and parse_let reg tk_list =
        let build constrs body =
          List.fold_right
            (fun (name, payload) acc ->
-             Let
-               ( name
-               , Constr (name, TArrow (payload, RecT (type_name, unfold payload)))
-               , acc ))
+              let idx, total = List.assoc name reg' in
+              Let
+                ( name
+                , Constr
+                    (name, idx, total, TArrow (payload, RecT (type_name, unfold payload)))
+                , acc ))
            constrs
            body
        in

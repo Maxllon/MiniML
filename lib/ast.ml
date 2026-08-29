@@ -38,7 +38,7 @@ type expr =
   | Bin_op of bin_op * expr * expr
   | Un_op of un_op * expr
   | Tuple of expr list
-  | Constr of string * ml_type
+  | Constr of string * int * int * ml_type
   | Case of expr * (expr * string * expr) list
 
 let rec expr_to_string = function
@@ -104,7 +104,7 @@ let rec expr_to_string = function
       | _ -> ""
     in
     "(" ^ helper tuple ^ ")"
-  | Constr (name, _) -> name
+  | Constr (name, _, _, _) -> name
   | Case (scrutinee, branches) ->
     let rec string_of_branches = function
       | (cname, var, body) :: rest ->

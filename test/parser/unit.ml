@@ -139,25 +139,21 @@ let test_case () =
     "simple case"
     (Let
        ( "t1"
-       , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
+       , Constr ("t1", 0, 2, TArrow (TInt, RecT ("X", TInt)))
        , Let
            ( "t2"
-           , Constr ("t2", TArrow (TInt, RecT ("X", TInt)))
-           , Case
-               ( Var "a"
-               , [ (Var "t1", "x", Int 1); (Var "t2", "y", Int 2) ] ) ) ))
+           , Constr ("t2", 1, 2, TArrow (TInt, RecT ("X", TInt)))
+           , Case (Var "a", [ Var "t1", "x", Int 1; Var "t2", "y", Int 2 ]) ) ))
     "type X = t1 of Int | t2 of Int in case a of t1 x => 1 | t2 y => 2";
   test_parse
     "case branches sorted to canonical order"
     (Let
        ( "t1"
-       , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
+       , Constr ("t1", 0, 2, TArrow (TInt, RecT ("X", TInt)))
        , Let
            ( "t2"
-           , Constr ("t2", TArrow (TInt, RecT ("X", TInt)))
-           , Case
-               ( Var "a"
-               , [ (Var "t1", "x", Int 1); (Var "t2", "y", Int 2) ] ) ) ))
+           , Constr ("t2", 1, 2, TArrow (TInt, RecT ("X", TInt)))
+           , Case (Var "a", [ Var "t1", "x", Int 1; Var "t2", "y", Int 2 ]) ) ))
     "type X = t1 of Int | t2 of Int in case a of t2 y => 2 | t1 x => 1";
   test_parse_error
     "case not exhaustive"
@@ -175,14 +171,14 @@ let test_case () =
 let test_typedecl () =
   test_parse
     "single constructor"
-    (Let ("t1", Constr ("t1", TArrow (TInt, RecT ("X", TInt))), Var "t1"))
+    (Let ("t1", Constr ("t1", 0, 1, TArrow (TInt, RecT ("X", TInt))), Var "t1"))
     "type X = t1 of Int in t1";
   test_parse
     "multiple constructors"
     (Let
        ( "t1"
-       , Constr ("t1", TArrow (TInt, RecT ("X", TInt)))
-       , Let ("t2", Constr ("t2", TArrow (TBool, RecT ("X", TBool))), Var "t1") ))
+       , Constr ("t1", 0, 2, TArrow (TInt, RecT ("X", TInt)))
+       , Let ("t2", Constr ("t2", 1, 2, TArrow (TBool, RecT ("X", TBool))), Var "t1") ))
     "type X = t1 of Int | t2 of Bool in t1";
   test_parse
     "tuple and arrow precedence"
@@ -190,6 +186,8 @@ let test_typedecl () =
        ( "t1"
        , Constr
            ( "t1"
+           , 0
+           , 1
            , TArrow
                ( TArrow (TTuple [ TInt; TBool ], RecT ("X", TVarS "X"))
                , RecT ("X", TArrow (TTuple [ TInt; TBool ], TVarS "X")) ) )
@@ -199,14 +197,15 @@ let test_typedecl () =
     "recursive reference in payload"
     (Let
        ( "t1"
-       , Constr ("t1", TArrow (RecT ("X", TVarS "X"), RecT ("X", TVarS "X")))
+       , Constr ("t1", 0, 1, TArrow (RecT ("X", TVarS "X"), RecT ("X", TVarS "X")))
        , Var "t1" ))
     "type X = t1 of X in t1";
   test_parse
     "parens in type"
     (Let
        ( "t1"
-       , Constr ("t1", TArrow (TArrow (TInt, TBool), RecT ("X", TArrow (TInt, TBool))))
+       , Constr
+           ("t1", 0, 1, TArrow (TArrow (TInt, TBool), RecT ("X", TArrow (TInt, TBool))))
        , Var "t1" ))
     "type X = t1 of (Int -> Bool) in t1";
   test_parse
@@ -215,6 +214,8 @@ let test_typedecl () =
        ( "val"
        , Constr
            ( "val"
+           , 0
+           , 1
            , TArrow
                ( TTuple [ TInt; RecT ("a", TVarS "a") ]
                , RecT ("a", TTuple [ TInt; TVarS "a" ]) ) )

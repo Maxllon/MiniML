@@ -38,7 +38,7 @@ type expr =
   | Bin_op of bin_op * expr * expr
   | Un_op of un_op * expr
   | Tuple of expr list
-  | Constr of string * ml_type
+  | Constr of string * int * int * ml_type
   | Case of expr * (expr * string * expr) list
 
 val expr_to_string : expr -> string
