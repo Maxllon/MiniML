@@ -134,7 +134,7 @@ and parse_args reg args tk_list =
 
 and parse_if reg tk_list =
   match tk_list with
-  | KEYWORD IF :: rest ->
+  | KEYWORD n :: rest when n = IF || n = LIF ->
     let cond, rest' = parse_expr reg rest in
     (match rest' with
      | KEYWORD THEN :: rest'' ->
@@ -142,7 +142,12 @@ and parse_if reg tk_list =
        (match rest''' with
         | KEYWORD ELSE :: rest'''' ->
           let else_expr, rest''''' = parse_expr reg rest'''' in
-          If (cond, then_expr, else_expr), rest'''''
+          if n = LIF
+          then (
+            let then_expr = Lambd ("x", then_expr) in
+            let else_expr = Lambd ("x", else_expr) in
+            App (If (cond, then_expr, else_expr), Int 0), rest''''')
+          else If (cond, then_expr, else_expr), rest'''''
         | _ -> failwith "expected else keyword")
      | _ -> failwith "expected then keyword")
   | _ -> parse_case reg tk_list

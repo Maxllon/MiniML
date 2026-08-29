@@ -2,6 +2,7 @@ type keyword =
   | LET
   | REC
   | IF
+  | LIF
   | THEN
   | ELSE
   | IN

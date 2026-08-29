@@ -2,6 +2,7 @@ type keyword =
   | LET
   | REC
   | IF
+  | LIF
   | THEN
   | ELSE
   | IN
@@ -69,6 +70,7 @@ let kwFromString = function
   | "let" -> Some LET
   | "rec" -> Some REC
   | "if" -> Some IF
+  | "lif" -> Some LIF
   | "then" -> Some THEN
   | "else" -> Some ELSE
   | "in" -> Some IN
@@ -187,6 +189,7 @@ let tokenToString = function
   | KEYWORD LET -> "LET"
   | KEYWORD REC -> "REC"
   | KEYWORD IF -> "IF"
+  | KEYWORD LIF -> "LIF"
   | KEYWORD THEN -> "THEN"
   | KEYWORD ELSE -> "ELSE"
   | KEYWORD IN -> "IN"
