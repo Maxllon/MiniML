@@ -28,6 +28,7 @@ let is_keyword s =
     [ "let"
     ; "rec"
     ; "if"
+    ; "lif"
     ; "then"
     ; "else"
     ; "in"
