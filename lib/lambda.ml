@@ -36,6 +36,7 @@ let try_std (e : expr) : expr =
 
 let rec compile (ctx : string list) (e : expr) : term =
   match try_std e with
+  | Unit -> compile ctx (Lambd ("x", Var "x"))
   | Var s ->
     (try
        let i = find_pos 0 s ctx in

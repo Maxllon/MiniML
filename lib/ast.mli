@@ -18,6 +18,7 @@ type un_op =
   | Neg
 
 type ml_type =
+  | TUnit
   | TInt
   | TBool
   | TArrow of ml_type * ml_type
@@ -27,6 +28,7 @@ type ml_type =
   | RecT of string * ml_type
 
 type expr =
+  | Unit
   | Var of string
   | Int of int
   | Bool of bool

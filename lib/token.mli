@@ -11,12 +11,14 @@ type keyword =
   | COMMA
   | BTInt
   | BTBool
+  | BTUnit
   | CASE
   | OF
   | BIGARROW
   | PIPE
   | TYPE
   | ARROW
+  | UNIT
 
 type bracket =
   | L_PAREN

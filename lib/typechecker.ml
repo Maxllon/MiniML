@@ -55,6 +55,7 @@ let rec unify = function
   | _ -> failwith "Should never reach here"
 
 and ml_type_to_string = function
+  | TUnit -> "Unit"
   | TInt -> "Int"
   | TBool -> "Bool"
   | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
@@ -88,6 +89,7 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
      | _ -> failwith ("Unbound variable: " ^ "\"" ^ name ^ "\""))
   | Int _ -> TInt, []
   | Bool _ -> TBool, []
+  | Unit -> TUnit, []
   | Lambd (name, body) ->
     let arg_type = TVar (fresh_var ()) in
     let body_type, c = set_equations body ((name, arg_type) :: ctx) in

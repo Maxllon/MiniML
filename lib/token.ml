@@ -11,12 +11,14 @@ type keyword =
   | COMMA
   | BTInt
   | BTBool
+  | BTUnit
   | CASE
   | OF
   | BIGARROW
   | PIPE
   | TYPE
   | ARROW
+  | UNIT
 
 type bracket =
   | L_PAREN
@@ -73,9 +75,11 @@ let kwFromString = function
   | "lif" -> Some LIF
   | "then" -> Some THEN
   | "else" -> Some ELSE
+  | "unit" -> Some UNIT
   | "in" -> Some IN
   | "Int" -> Some BTInt
   | "Bool" -> Some BTBool
+  | "Unit" -> Some BTUnit
   | "case" -> Some CASE
   | "of" -> Some OF
   | "=>" -> Some BIGARROW
@@ -198,12 +202,14 @@ let tokenToString = function
   | KEYWORD COMMA -> "COMMA"
   | KEYWORD BTInt -> "Int"
   | KEYWORD BTBool -> "Bool"
+  | KEYWORD BTUnit -> "Unit"
   | KEYWORD CASE -> "CASE"
   | KEYWORD OF -> "OF"
   | KEYWORD BIGARROW -> "BIGARROW"
   | KEYWORD PIPE -> "PIPE"
   | KEYWORD TYPE -> "TYPE"
   | KEYWORD ARROW -> "ARROW"
+  | KEYWORD UNIT -> "UNIT"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

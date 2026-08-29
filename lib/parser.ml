@@ -206,6 +206,7 @@ and parse_type_atom type_name tk_list =
   match tk_list with
   | KEYWORD BTInt :: rest -> TInt, rest
   | KEYWORD BTBool :: rest -> TBool, rest
+  | KEYWORD BTUnit :: rest -> TUnit, rest
   | VAR y :: rest ->
     if y = type_name then RecT (y, TVarS y), rest else failwith "unknown type"
   | BRACKET L_PAREN :: rest ->
@@ -339,6 +340,7 @@ and parse_app reg tk_list =
   build_app expr rest
 
 and parse_atom reg = function
+  | KEYWORD UNIT :: rest -> Unit, rest
   | INT n :: rest -> Int n, rest
   | VAR s :: rest -> Var s, rest
   | BOOLEAN a :: rest -> Bool a, rest
