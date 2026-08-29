@@ -62,7 +62,20 @@ let rec compile (ctx : string list) (e : expr) : term =
   | Bin_op (op, a, b) -> bin_to_term op (compile ctx a) (compile ctx b)
   | Un_op (op, expr) -> un_to_term op (compile ctx expr)
   | Tuple tuple -> compile ctx (compile_tuple tuple)
-  | _ -> failwith "not implemented"
+  | Constr (_, idx, total, _) ->
+    let rec helper i : expr =
+      if i = total
+      then App (Var ("a" ^ string_of_int idx), Var "x")
+      else Lambd ("a" ^ string_of_int i, helper (i + 1))
+    in
+    compile ctx (Lambd ("x", helper 0))
+  | Case (a, case_body) ->
+    let rec helper acc case_body : expr =
+      match case_body with
+      | [] -> acc
+      | (_, name, body) :: rest -> helper (App (acc, Lambd (name, body))) rest
+    in
+    compile ctx (helper a case_body)
 
 and compile_tuple = function
   | [ expr ] -> expr
