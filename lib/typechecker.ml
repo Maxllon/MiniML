@@ -59,8 +59,8 @@ and ml_type_to_string = function
   | TBool -> "Bool"
   | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
   | TVar i -> "t" ^ string_of_int i
-  | TVarS s -> "s: " ^ s
-  | RecT (name, t) -> "rec " ^ name ^ "." ^ ml_type_to_string t
+  | TVarS s -> s
+  | RecT (name, t) -> "μ" ^ name ^ "." ^ ml_type_to_string t
   | TTuple tuple ->
     let rec helper = function
       | first :: second :: rest ->
