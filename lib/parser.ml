@@ -106,7 +106,7 @@ and parse_let_body reg args constructor name tk_list =
       | [] -> expr'
       | s :: args'' -> Lambd (s, build args'' expr')
     in
-    let value = build args value in
+    let value = build (List.rev args) value in
     (match rest with
      | KEYWORD IN :: rest' ->
        let body, rest'' = parse_expr reg rest' in
