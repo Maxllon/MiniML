@@ -18,6 +18,7 @@ type un_op =
   | Neg
 
 type ml_type =
+  | TExc
   | TUnit
   | TInt
   | TBool
@@ -42,6 +43,7 @@ type expr =
   | Tuple of expr list
   | Constr of string * int * int * ml_type
   | Case of expr * (expr * string * expr) list
+  | Try of expr * expr
 
 let rec expr_to_string = function
   | Unit -> "unit"
@@ -120,4 +122,6 @@ let rec expr_to_string = function
       | [] -> ""
     in
     "(case " ^ expr_to_string scrutinee ^ " of " ^ string_of_branches branches ^ ")"
+  | Try (try_val, catch) ->
+    "(try " ^ expr_to_string try_val ^ " with " ^ expr_to_string catch ^ ")"
 ;;

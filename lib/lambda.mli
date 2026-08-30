@@ -9,6 +9,8 @@ type term =
   | Fun of term
   | App of term * term
   | Int of int
+  | Error
+  | Try of term * term
 
 val ltrue : term
 val lfalse : term

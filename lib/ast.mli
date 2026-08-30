@@ -18,6 +18,7 @@ type un_op =
   | Neg
 
 type ml_type =
+  | TExc
   | TUnit
   | TInt
   | TBool
@@ -42,5 +43,6 @@ type expr =
   | Tuple of expr list
   | Constr of string * int * int * ml_type
   | Case of expr * (expr * string * expr) list
+  | Try of expr * expr
 
 val expr_to_string : expr -> string

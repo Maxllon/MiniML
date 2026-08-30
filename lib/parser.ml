@@ -117,6 +117,17 @@ and parse_let_body reg args constructor name tk_list =
 and parse_fun reg tk_list =
   match tk_list with
   | KEYWORD LAMBD :: rest -> parse_args reg [] rest
+  | _ -> parse_try reg tk_list
+
+and parse_try reg tk_list =
+  match tk_list with
+  | KEYWORD TRY :: rest ->
+    let try_val, rest' = parse_expr reg rest in
+    (match rest' with
+     | KEYWORD WITH :: rest'' ->
+       let catch, rest''' = parse_expr reg rest'' in
+       Try (try_val, catch), rest'''
+     | _ -> failwith "Expected \"with\" keyword in try block")
   | _ -> parse_if reg tk_list
 
 and parse_args reg args tk_list =

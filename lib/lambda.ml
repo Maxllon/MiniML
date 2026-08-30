@@ -11,6 +11,8 @@ type term =
   | Fun of term
   | App of term * term
   | Int of int
+  | Error
+  | Try of term * term
 
 let ch_true = Lambd ("x", Lambd ("y", Var "x"))
 let ch_false = Lambd ("x", Lambd ("y", Var "y"))
@@ -37,6 +39,7 @@ let try_std (e : expr) : expr =
 let rec compile (ctx : string list) (e : expr) : term =
   match try_std e with
   | Unit -> compile ctx (Lambd ("x", Var "x"))
+  | Var "raise" -> Error
   | Var s ->
     (try
        let i = find_pos 0 s ctx in
@@ -77,6 +80,7 @@ let rec compile (ctx : string list) (e : expr) : term =
       | (_, name, body) :: rest -> helper (App (acc, Lambd (name, body))) rest
     in
     compile ctx (helper a case_body)
+  | Try (e1, e2) -> Try (compile ctx e1, compile ctx e2)
 
 and compile_tuple = function
   | [ expr ] -> expr
@@ -114,4 +118,7 @@ let rec term_to_string = function
   | Int v -> string_of_int v
   | Fun body -> "(λ" ^ "." ^ term_to_string body ^ ")"
   | App (term, term') -> "(" ^ term_to_string term ^ " " ^ term_to_string term' ^ ")"
+  | Error -> "error"
+  | Try (term1, term2) ->
+    "(try " ^ term_to_string term1 ^ " with " ^ term_to_string term2 ^ ")"
 ;;

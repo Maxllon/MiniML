@@ -49,12 +49,14 @@ let rec unify = function
     in
     unify (check_size (l, r) @ rest)
   (*danger*)
+  | (TExc, _) :: rest | (_, TExc) :: rest -> unify rest
   | (ltype, rtype) :: _ ->
     failwith
       ("Cannot equalise:\n" ^ ml_type_to_string ltype ^ "\n" ^ ml_type_to_string rtype)
   | _ -> failwith "Should never reach here"
 
 and ml_type_to_string = function
+  | TExc -> "Exc"
   | TUnit -> "Unit"
   | TInt -> "Int"
   | TBool -> "Bool"
@@ -83,6 +85,7 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
         , TVar (fresh_var () + n + 1) )
     , [] )
   (*std*)
+  | Var "raise" -> TVar (fresh_var ()), []
   | Var name ->
     (match List.assoc_opt name ctx with
      | Some t -> t, []
@@ -150,6 +153,10 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
         helper rest body_type (body_c @ f_c @ new_c @ c)
     in
     helper cases (TVar (fresh_var ())) folded_c
+  | Try (try_block, catch) ->
+    let try_block_t, try_block_c = set_equations try_block ctx in
+    let catch_t, catch_c = set_equations catch ctx in
+    catch_t, [ catch_t, try_block_t ] @ try_block_c @ catch_c
 ;;
 
 let get_type ast =

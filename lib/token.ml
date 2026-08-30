@@ -1,4 +1,6 @@
 type keyword =
+  | TRY
+  | WITH
   | LET
   | REC
   | IF
@@ -210,6 +212,8 @@ let tokenToString = function
   | KEYWORD TYPE -> "TYPE"
   | KEYWORD ARROW -> "ARROW"
   | KEYWORD UNIT -> "UNIT"
+  | KEYWORD TRY -> "TRY"
+  | KEYWORD WITH -> "WITH"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

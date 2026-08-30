@@ -1,4 +1,6 @@
 type keyword =
+  | TRY
+  | WITH
   | LET
   | REC
   | IF
