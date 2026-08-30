@@ -57,7 +57,7 @@ let rec eval term =
      | Fun body ->
        let res = subst 0 (shift 1 0 v2) body in
        eval (shift (-1) 0 res)
-     | _ -> failwith "incorrect Application")
+     | _ -> try_std (App (v1, v2)))
   | t when is_val t -> t
   | _ -> failwith "incorrect interpreter, should never reach here"
 ;;
