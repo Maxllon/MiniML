@@ -27,6 +27,7 @@ type ml_type =
   | TVarS of string
   | TTuple of ml_type list
   | RecT of string * ml_type
+  | Scheme of ml_type list * ml_type
 
 type expr =
   | Unit

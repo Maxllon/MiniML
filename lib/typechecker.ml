@@ -18,10 +18,14 @@ let fresh_var () =
   !counter
 ;;
 
-let rec subst_c name n_type = function
-  | TVar i when i = name -> n_type
-  | TArrow (l, r) -> TArrow (subst_c name n_type l, subst_c name n_type r)
-  | some -> some
+let rec subst_c t1 t2 =
+  (function
+    | t when t = t1 -> t2
+    | TArrow (l, r) -> TArrow (subst_c t1 t2 l, subst_c t1 t2 r)
+    | RecT (name, t) -> RecT (name, subst_c t1 t2 t)
+    | TTuple l -> TTuple (l |> List.concat_map (fun x -> [ subst_c t1 t2 x ]))
+    | Scheme (l, t) -> Scheme (l, subst_c t1 t2 t)
+    | t -> t)
 ;;
 
 let rec occurs name = function
@@ -30,13 +34,28 @@ let rec occurs name = function
   | _ -> false
 ;;
 
+let instantiate = function
+  | Scheme (l, t) ->
+    let rec apply_all l t =
+      match l with
+      | [] -> t
+      | t1 :: rest -> subst_c t1 (TVar (fresh_var ())) (apply_all rest t)
+    in
+    apply_all l t
+  | t -> t
+;;
+
 let rec unify = function
+  | (tp, Scheme (l, t)) :: rest | (Scheme (l, t), tp) :: rest ->
+    unify ((tp, instantiate (Scheme (l, t))) :: rest)
   | (ltype, _) :: [] -> ltype
   | (ltype, rtype) :: rest when ltype = rtype -> unify rest
   | (TVar name, tp) :: rest | (tp, TVar name) :: rest ->
     if occurs name tp
     then failwith "Occur check error"
-    else unify (List.map (fun (a, b) -> subst_c name tp a, subst_c name tp b) rest)
+    else
+      unify
+        (List.map (fun (a, b) -> subst_c (TVar name) tp a, subst_c (TVar name) tp b) rest)
   | (TArrow (l1, l2), TArrow (r1, r2)) :: rest -> unify ((l1, r1) :: (l2, r2) :: rest)
   | (RecT (l, _), RecT (r, _)) :: rest when l = r -> unify rest
   (*danger*)
@@ -53,7 +72,7 @@ let rec unify = function
   | (ltype, rtype) :: _ ->
     failwith
       ("Cannot equalise:\n" ^ ml_type_to_string ltype ^ "\n" ^ ml_type_to_string rtype)
-  | _ -> failwith "Should never reach here"
+  | [] -> TVar (-1)
 
 and ml_type_to_string = function
   | TExc -> "Exc"
@@ -72,6 +91,29 @@ and ml_type_to_string = function
       | _ -> ""
     in
     "(" ^ helper tuple ^ ")"
+  | Scheme (l, t) ->
+    "∀"
+    ^ String.concat "," (List.map (fun x -> ml_type_to_string x) l)
+    ^ "."
+    ^ ml_type_to_string t
+;;
+
+let generalize (ctx : (string * ml_type) list) (tp : ml_type) =
+  let vars_t tp =
+    let rec helper = function
+      | TVar i -> [ i ]
+      | TArrow (t1, t2) -> helper t1 @ helper t2
+      | RecT (_, t) -> helper t
+      | TTuple l -> l |> List.concat_map (fun x -> helper x)
+      | _ -> []
+    in
+    List.sort_uniq compare (helper tp)
+  in
+  let vars_ctx =
+    ctx |> List.concat_map (fun x -> vars_t (snd x)) |> List.sort_uniq compare
+  in
+  let free_vars = List.filter (fun x -> not (List.mem x vars_ctx)) (vars_t tp) in
+  Scheme (List.map (fun x -> TVar x) free_vars, tp)
 ;;
 
 let rec set_equations (term : expr) (ctx : (string * ml_type) list)
@@ -124,8 +166,10 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
     body_type, (f_type, value_type) :: (value_c @ body_c)
   | Let (name, value, body) ->
     let value_type, value_c = set_equations value ctx in
+    let _ = unify value_c in
+    let value_type = generalize ctx value_type in
     let body_type, body_c = set_equations body ((name, value_type) :: ctx) in
-    body_type, value_c @ body_c
+    body_type, body_c
   | Tuple tuple ->
     let rec helper = function
       | value :: rest when rest != [] ->
