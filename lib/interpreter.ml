@@ -4,6 +4,7 @@ let rec shift d c = function
   | Var (Idx k) -> if k < c then Var (Idx k) else Var (Idx (k + d))
   | Fun t -> Fun (shift d (c + 1) t)
   | App (t1, t2) -> App (shift d c t1, shift d c t2)
+  | Try (t1, t2) -> Try (shift d c t1, shift d c t2)
   | t -> t
 ;;
 
@@ -13,6 +14,7 @@ let rec subst j s t =
   | Var (Idx k) when k = j -> s
   | Fun t1 -> Fun (subst (j + 1) (shift 1 0 s) t1)
   | App (t1, t2) -> App (subst j s t1, subst j s t2)
+  | Try (t1, t2) -> Try (subst j s t1, subst j s t2)
   | _ -> t
 ;;
 
@@ -55,7 +57,7 @@ let rec eval term =
      | Fun body ->
        let res = subst 0 (shift 1 0 v2) body in
        eval (shift (-1) 0 res)
-     | _ -> Error)
+     | _ -> failwith "incorrect Application")
   | t when is_val t -> t
-  | _ -> failwith "Error: incorrect interpreter, should never reach here"
+  | _ -> failwith "incorrect interpreter, should never reach here"
 ;;

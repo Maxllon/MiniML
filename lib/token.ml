@@ -87,6 +87,8 @@ let kwFromString = function
   | "=>" -> Some BIGARROW
   | "|" -> Some PIPE
   | "type" -> Some TYPE
+  | "try" -> Some TRY
+  | "with" -> Some WITH
   | "->" -> Some ARROW
   | "\\" -> Some LAMBD
   | "." -> Some DOT
