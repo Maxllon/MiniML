@@ -22,8 +22,6 @@ let try_std = function
   | App (App (Var (Name "*"), Int a), Int b) -> Int (a * b)
   | App (App (Var (Name "/"), Int a), Int b) -> if b = 0 then Error else Int (a / b)
   | App (App (Var (Name "="), Int a), Int b) -> if a = b then ltrue else lfalse
-  | App (App (Var (Name "="), a), b) when a = lfalse -> if a = b then ltrue else lfalse
-  | App (App (Var (Name "="), a), b) when a = ltrue -> if a = b then ltrue else lfalse
   | App (App (Var (Name "<"), a), b) -> if a < b then ltrue else lfalse
   | App (App (Var (Name "<="), a), b) -> if a <= b then ltrue else lfalse
   | App (App (Var (Name ">"), a), b) -> if a > b then ltrue else lfalse
