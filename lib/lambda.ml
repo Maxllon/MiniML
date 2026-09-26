@@ -29,10 +29,9 @@ let try_std (e : expr) : expr =
   let first = Lambd ("f", App (Var "f", ch_true)) in
   let second = Lambd ("f", App (Var "f", ch_false)) in
   match e with
-  | App (Var "nth", Int 0) -> Lambd ("g", App (first, Var "g"))
   | App (Var "nth", Int i) ->
     let rec helper n : expr = if n = 0 then Var "g" else App (second, helper (n - 1)) in
-    Lambd ("g", helper i)
+    Lambd ("g", App (first, helper i))
   | _ -> e
 ;;
 
@@ -82,10 +81,10 @@ let rec compile (ctx : string list) (e : expr) : term =
     compile ctx (helper a case_body)
   | Try (e1, e2) -> Try (compile ctx e1, compile ctx e2)
 
-and compile_tuple = function
-  | [ expr ] -> expr
+and compile_tuple (tuple : expr list) : expr =
+  match tuple with
+  | [] -> Lambd ("f", Var "f")
   | expr :: rest -> Lambd ("f", App (App (Var "f", expr), compile_tuple rest))
-  | _ -> failwith "(Compiler): Should never reach here!"
 
 and bin_to_term op a b =
   let builder op' a' b' = App (App (Var (Name op'), a'), b') in

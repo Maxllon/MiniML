@@ -9,7 +9,9 @@ let rec type_term_to_string term tp =
   | TInt ->
     (match term with
      | Int i -> string_of_int i
-     | _ -> failwith "Util: Should never reach here!")
+     | _ ->
+       print_endline "here!";
+       failwith "Util: Should never reach here!")
   | TBool ->
     (match term with
      | Fun (Fun (Var (Idx i))) when i = 0 || i = 1 -> if i = 1 then "True" else "False"
