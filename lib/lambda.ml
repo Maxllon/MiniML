@@ -35,6 +35,10 @@ let try_std (e : expr) : expr =
   | _ -> e
 ;;
 
+let compile_int (n : int) : expr =
+  Tuple (List.init 32 (fun i -> Bool (n land (1 lsl i) <> 0)))
+;;
+
 let rec compile (ctx : string list) (e : expr) : term =
   match try_std e with
   | Unit -> compile ctx (Lambd ("x", Var "x"))
@@ -45,7 +49,7 @@ let rec compile (ctx : string list) (e : expr) : term =
        Var (Idx i)
      with
      | FreeVar -> Var (Name s))
-  | Int v -> Int v
+  | Int v -> compile ctx (compile_int v)
   | Bool v ->
     (match v with
      | true -> ltrue
