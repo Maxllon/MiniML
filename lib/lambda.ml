@@ -49,7 +49,6 @@ let compile_int (n : int) : expr =
    тот же для каждой строки REPL. Тело [true] дописывается только чтобы
    последний [let] был чем-то завершён — оно отбрасывается. *)
 let prelude_defs =
-  print_endline "here!";
   lazy
     (match Lexer.tokenize (Prelude.source ^ "\ntrue") with
      | Error _ -> failwith "Prelude: lexer error"
@@ -61,7 +60,6 @@ let prelude_defs =
             | Let (name, value, body) -> split ((name, value) :: acc) body
             | _ -> List.rev acc
           in
-          print_endline "now here!";
           split [] ast))
 ;;
 
@@ -131,9 +129,9 @@ and compile_tuple (tuple : expr list) : expr =
   | expr :: rest -> Lambd ("f", App (App (Var "f", expr), compile_tuple rest))
 
 and bin_to_expr (op : bin_op) (a : expr) (b : expr) : expr =
-  (* [+, -, =] считаются прелюдией на битах. Остальные примитивы остаются
-     свободными именами: их разбирает [Interpreter.try_std], раскодируя
-     операнды (кортежи из Church-булсов) в машинный int. *)
+  (* [+, -, =, <, <=, >, >=] считаются прелюдией на битах, остаются
+     примитивы [*, /]: их разбирает [Interpreter.apply_prim], но операнды он
+     ждёт машинными [VInt], а не кортежами из Church-буллов. *)
   let prim (name : string) : expr = App (App (Ast.Var name, a), b) in
   match op with
   | Add -> prim Prelude.add_name
@@ -142,10 +140,10 @@ and bin_to_expr (op : bin_op) (a : expr) (b : expr) : expr =
   | Neq -> un_to_expr Not (prim Prelude.eq_name)
   | Mult -> prim "*"
   | Div -> prim "/"
-  | Lt -> prim "<"
-  | Le -> prim "<="
-  | Gt -> prim ">"
-  | Ge -> prim ">="
+  | Lt -> prim Prelude.lt_name
+  | Le -> prim Prelude.le_name
+  | Gt -> prim Prelude.gt_name
+  | Ge -> prim Prelude.ge_name
   | And -> App (App (a, b), ch_false)
   | Or -> App (App (a, ch_true), b)
   | Xor -> App (App (a, un_to_expr Not b), b)
