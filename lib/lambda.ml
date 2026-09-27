@@ -25,18 +25,58 @@ let rec find_pos n name = function
   | _ -> raise FreeVar
 ;;
 
-let try_std (e : expr) : expr =
+(* [nth i] и [bit i] превращаются в селектор: значение-кортеж применяется к
+   цепочке из [i + 1] Church-условий, каждое из которых либо оставляет
+   аргумент, либо заменяет его на [true]/[false]. *)
+let nth_expander (i : int) : expr =
   let first = Lambd ("f", App (Var "f", ch_true)) in
   let second = Lambd ("f", App (Var "f", ch_false)) in
+  let rec helper n : expr = if n = 0 then Var "g" else App (second, helper (n - 1)) in
+  Lambd ("g", App (first, helper i))
+;;
+
+let try_std (e : expr) : expr =
   match e with
-  | App (Var "nth", Int i) ->
-    let rec helper n : expr = if n = 0 then Var "g" else App (second, helper (n - 1)) in
-    Lambd ("g", App (first, helper i))
+  | App (Var ("nth" | "bit"), Int i) -> nth_expander i
   | _ -> e
 ;;
 
 let compile_int (n : int) : expr =
-  Tuple (List.init 32 (fun i -> Bool (n land (1 lsl i) <> 0)))
+  Tuple (List.init Prelude.width (fun i -> Bool (n land (1 lsl i) <> 0)))
+;;
+
+(* Определения прелюдии разбираются один раз и кэшируются: исходник один и
+   тот же для каждой строки REPL. Тело [true] дописывается только чтобы
+   последний [let] был чем-то завершён — оно отбрасывается. *)
+let prelude_defs =
+  print_endline "here!";
+  lazy
+    (match Lexer.tokenize (Prelude.source ^ "\ntrue") with
+     | Error _ -> failwith "Prelude: lexer error"
+     | Ok tokens ->
+       (match Parser.parse tokens with
+        | Error e -> failwith ("Prelude: " ^ e)
+        | Ok ast ->
+          let rec split acc = function
+            | Let (name, value, body) -> split ((name, value) :: acc) body
+            | _ -> List.rev acc
+          in
+          print_endline "now here!";
+          split [] ast))
+;;
+
+(* Оборачивает пользовательское выражение в определения прелюдии.
+
+   Прелюдия — это обычный MiniML, но тайпчекер её не видит: он проверяет
+   исходную программу, где [+] — это [TInt], а не кортеж из 32 буллов.
+   Соединение происходит здесь, на этапе компиляции в бестиповые лямбды:
+   [compile] раскрывает [let] в применения лямбд, а [nth] в
+   {v try_std} — в селектор, и [Int] раскрывается в 32-кортеж. *)
+let with_prelude (e : expr) : expr =
+  List.fold_right
+    (fun (name, value) acc -> Let (name, value, acc))
+    (Lazy.force prelude_defs)
+    e
 ;;
 
 let rec compile (ctx : string list) (e : expr) : term =
@@ -66,8 +106,8 @@ let rec compile (ctx : string list) (e : expr) : term =
   | Lambd (name, expr) -> Fun (compile (name :: ctx) expr)
   | App (expr, expr') -> App (compile ctx expr, compile ctx expr')
   | If (cond, th, els) -> App (App (compile ctx cond, compile ctx th), compile ctx els)
-  | Bin_op (op, a, b) -> bin_to_term op (compile ctx a) (compile ctx b)
-  | Un_op (op, expr) -> un_to_term op (compile ctx expr)
+  | Bin_op (op, a, b) -> compile ctx (bin_to_expr op a b)
+  | Un_op (op, expr) -> compile ctx (un_to_expr op expr)
   | Tuple tuple -> compile ctx (compile_tuple tuple)
   | Constr (_, idx, total, _) ->
     let rec helper i : expr =
@@ -90,30 +130,33 @@ and compile_tuple (tuple : expr list) : expr =
   | [] -> Lambd ("f", Var "f")
   | expr :: rest -> Lambd ("f", App (App (Var "f", expr), compile_tuple rest))
 
-and bin_to_term op a b =
-  let builder op' a' b' = App (App (Var (Name op'), a'), b') in
+and bin_to_expr (op : bin_op) (a : expr) (b : expr) : expr =
+  (* [+, -, =] считаются прелюдией на битах. Остальные примитивы остаются
+     свободными именами: их разбирает [Interpreter.try_std], раскодируя
+     операнды (кортежи из Church-булсов) в машинный int. *)
+  let prim (name : string) : expr = App (App (Ast.Var name, a), b) in
   match op with
-  | Add -> builder "+" a b
-  | Sub -> builder "-" a b
-  | Mult -> builder "*" a b
-  | Div -> builder "/" a b
-  | Eq -> builder "=" a b
-  | Neq -> un_to_term Not (builder "=" a b)
-  | Lt -> builder "<" a b
-  | Le -> builder "<=" a b
-  | Gt -> builder ">" a b
-  | Ge -> builder ">=" a b
-  | And -> App (App (a, b), lfalse)
-  | Or -> App (App (a, ltrue), b)
-  | Xor -> App (App (a, un_to_term Not b), b)
+  | Add -> prim Prelude.add_name
+  | Sub -> prim Prelude.sub_name
+  | Eq -> prim Prelude.eq_name
+  | Neq -> un_to_expr Not (prim Prelude.eq_name)
+  | Mult -> prim "*"
+  | Div -> prim "/"
+  | Lt -> prim "<"
+  | Le -> prim "<="
+  | Gt -> prim ">"
+  | Ge -> prim ">="
+  | And -> App (App (a, b), ch_false)
+  | Or -> App (App (a, ch_true), b)
+  | Xor -> App (App (a, un_to_expr Not b), b)
 
-and un_to_term op term =
+and un_to_expr (op : un_op) (term : expr) : expr =
   match op with
-  | Not -> App (App (term, lfalse), ltrue)
-  | Neg -> bin_to_term Sub (Int 0) term
+  | Not -> App (App (term, ch_false), ch_true)
+  | Neg -> bin_to_expr Sub (Int 0) term
 ;;
 
-let ast_to_term (e : expr) = compile [] e
+let ast_to_term (e : expr) = compile [] (with_prelude e)
 
 let rec term_to_string = function
   | Var (Name s) -> s

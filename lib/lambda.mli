@@ -14,5 +14,6 @@ type term =
 
 val ltrue : term
 val lfalse : term
+
 val ast_to_term : expr -> term
 val term_to_string : term -> string

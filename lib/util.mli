@@ -1,4 +1,4 @@
 open Ast
-open Lambda
+open Interpreter
 
-val type_term_to_string : term -> ml_type -> string
+val type_term_to_string : value -> ml_type -> string
