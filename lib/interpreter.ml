@@ -34,7 +34,12 @@ let rec eval (env : value list) (t : term) : value =
         match v1 with
         | VClosure (body, env') -> eval (v2 :: env') body
         | _ -> VError))
-  | _ -> failwith "banana"
+  (* [raise] компилируется в [Error], и это такой же терм, как остальные:
+     он вычисляется в значение ошибки в любой позиции, а не только когда стоит
+     сам по себе. Иначе прелюдия не смогла бы выразить «деление на ноль»:
+     ветки [if] вычисляются обе, и ошибка в невыбранной ветке требовала бы
+     отложить её до применения лямбды. *)
+  | Error -> VError
 
 and apply_prim op a b =
   match op, a, b with
