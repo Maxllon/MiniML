@@ -46,6 +46,22 @@ Let with multiplication
   > 
   Goodbye!
 
+Multiplication is 32-bit (wraps around, like the other prelude arithmetic)
+
+  $ echo '65537*65537' | dune exec miniML
+  miniML REPL
+  > 131073 : Int
+  > 
+  Goodbye!
+
+Multiplication of negative numbers (two's complement)
+
+  $ echo '(0-3)*(0-2)' | dune exec miniML
+  miniML REPL
+  > 6 : Int
+  > 
+  Goodbye!
+
 Let with syntactic sugar (single argument)
 
   $ echo 'let f x = x+1 in f 5' | dune exec miniML
@@ -86,11 +102,11 @@ Lambda with multiple arguments
   > 
   Goodbye!
 
-Lambda without application (prints compiled de Bruijn term)
+Lambda without application (prints as an opaque closure)
 
   $ echo '\x.x' | dune exec miniML
   miniML REPL
-  > (λ.i0) : (t0 -> t0)
+  > λχ.τ : (t0 -> t0)
   > 
   Goodbye!
 
@@ -132,31 +148,31 @@ Boolean expressions
 
   $ echo 'true and false or true' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
-Boolean and (Church encoding)
+Boolean and
 
   $ echo 'true and false' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i0)) : Bool
+  > False : Bool
   > 
   Goodbye!
 
-Boolean or (Church encoding)
+Boolean or
 
   $ echo 'false or false' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i0)) : Bool
+  > False : Bool
   > 
   Goodbye!
 
-Comparison operators (evaluate to Church booleans)
+Comparison operators
 
   $ echo '2 < 3' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
@@ -164,7 +180,7 @@ Less than or equal
 
   $ echo '3 <= 3' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
@@ -172,7 +188,7 @@ Greater than
 
   $ echo '5 > 3' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
@@ -180,7 +196,7 @@ Greater than or equal
 
   $ echo '3 >= 3' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
@@ -188,7 +204,7 @@ Equality
 
   $ echo '5 = 5' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
@@ -196,7 +212,7 @@ Inequality
 
   $ echo '5 != 5' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i0)) : Bool
+  > False : Bool
   > 
   Goodbye!
 
@@ -240,11 +256,43 @@ Division with let
   > 
   Goodbye!
 
+Division truncates toward zero
+
+  $ echo '7 / 2' | dune exec miniML
+  miniML REPL
+  > 3 : Int
+  > 
+  Goodbye!
+
+Division of negative numbers (two's complement)
+
+  $ echo '(0-1) / (0-1)' | dune exec miniML
+  miniML REPL
+  > 1 : Int
+  > 
+  Goodbye!
+
+Division with a large quotient
+
+  $ echo '1000000 / 7' | dune exec miniML
+  miniML REPL
+  > 142857 : Int
+  > 
+  Goodbye!
+
+Zero divided by a non-zero divisor
+
+  $ echo '0 / 5' | dune exec miniML
+  miniML REPL
+  > 0 : Int
+  > 
+  Goodbye!
+
 Xor operator
 
   $ echo 'true xor false' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i1)) : Bool
+  > True : Bool
   > 
   Goodbye!
 
@@ -252,7 +300,7 @@ Xor both true
 
   $ echo 'true xor true' | dune exec miniML
   miniML REPL
-  > (λ.(λ.i0)) : Bool
+  > False : Bool
   > 
   Goodbye!
 
@@ -276,7 +324,7 @@ Division by zero (evaluates to error)
 
   $ echo '1 / 0' | dune exec miniML
   miniML REPL
-  > error : Int
+  > exception : Int
   > 
   Goodbye!
 

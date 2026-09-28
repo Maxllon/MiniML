@@ -25,11 +25,15 @@ let rec type_term_to_string term tp =
      | TExc -> "exception"
      | TUnit -> "unit"
      | TInt ->
-       string_of_int
-         (List.fold_left
-            (fun acc i -> acc lor (bit term i lsl i))
-            0
-            (List.init 32 Fun.id))
+       let raw =
+         List.fold_left
+           (fun acc i -> acc lor (bit term i lsl i))
+           0
+           (List.init 32 Fun.id)
+       in
+       if raw land 0x8000_0000 = 0
+       then string_of_int raw
+       else string_of_int (raw - 0x1_0000_0000)
      | TBool ->
        (match term with
         | VClosure (Fun (Var (Idx i)), _) when i = 0 || i = 1 ->

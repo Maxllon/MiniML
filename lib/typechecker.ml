@@ -113,7 +113,9 @@ let generalize (ctx : (string * ml_type) list) (tp : ml_type) =
     ctx |> List.concat_map (fun x -> vars_t (snd x)) |> List.sort_uniq compare
   in
   let free_vars = List.filter (fun x -> not (List.mem x vars_ctx)) (vars_t tp) in
-  Scheme (List.map (fun x -> TVar x) free_vars, tp)
+  match free_vars with
+  | [] -> tp
+  | _ -> Scheme (List.map (fun x -> TVar x) free_vars, tp)
 ;;
 
 let rec set_equations (term : expr) (ctx : (string * ml_type) list)

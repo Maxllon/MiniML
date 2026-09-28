@@ -233,12 +233,12 @@ let test_to_string () =
   check t "arrow" "(Int -> Bool)" (Typechecker.ml_type_to_string (TArrow (TInt, TBool)));
   check t "tuple" "(Int * Bool)" (Typechecker.ml_type_to_string (TTuple [ TInt; TBool ]));
   check t "type variable" "t3" (Typechecker.ml_type_to_string (TVar 3));
-  check t "named type variable" "s: X" (Typechecker.ml_type_to_string (TVarS "X"));
-  check t "recursive type" "rec X.Int" (Typechecker.ml_type_to_string (RecT ("X", TInt)));
+  check t "named type variable" "X" (Typechecker.ml_type_to_string (TVarS "X"));
+  check t "recursive type" "μX.Int" (Typechecker.ml_type_to_string (RecT ("X", TInt)));
   check
     t
     "recursive arrow type"
-    "(Int -> rec X.Int)"
+    "(Int -> μX.Int)"
     (Typechecker.ml_type_to_string (TArrow (TInt, RecT ("X", TInt))))
 ;;
 
