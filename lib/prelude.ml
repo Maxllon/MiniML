@@ -3,8 +3,8 @@
 
    Публичные имена, на которые ссылается компилятор:
 
-   {v add_name v} / {v sub_name v} / {v eq_name v} / {v lt_name v} /
-   {v le_name v} / {v gt_name v} / {v ge_name v}
+   {v add_name v} / {v sub_name v} / {v mul_name v} / {v eq_name v} /
+   {v lt_name v} / {v le_name v} / {v gt_name v} / {v ge_name v}
 
    Компилятор не может сам построить определение функции, поэтому исходник
    прелюдии генерируется здесь и оборачивается вокруг пользовательского
@@ -16,12 +16,14 @@ let not_name = "__ml_not"
 let addc_name = "__ml_addc"
 let add_name = "__ml_add"
 let sub_name = "__ml_sub"
+let mul_name = "__ml_mul"
 let eq_name = "__ml_eq"
 let lt_name = "__ml_lt"
 let le_name = "__ml_le"
 let gt_name = "__ml_gt"
 let ge_name = "__ml_ge"
 let stage_name i = Printf.sprintf "__s%d" i
+let part_name i = Printf.sprintf "__ml_p%d" i
 
 (* [nth i t] — i-й бит числа [t]. Это уже существующий примитив языка:
    [Lambda.try_std] разворачивает его в селектор, [Typechecker] типизирует
@@ -74,6 +76,22 @@ let rec cmp_chain a b defs carry i =
     cmp_chain a b (def :: defs) (bit 1 name) (i + 1))
 ;;
 
+(* [partial i] — i-е частичное произведение в схеме «сдвиг и сложение»:
+   [a << i], обрезанное по биту [i] второго операнда. Бит [j] результата равен
+   [b_i and a_{j-i}] при [j >= i] и нулю при [j < i].
+
+   Здесь [and] — обычный логический оператор языка, а не прелюдийный: оба
+   операнда уже Church-булвы (результаты [nth]), так что перенос не нужен.
+   Нижние биты [j < i] пишутся сразу [false]: [b_i and false] — то же самое,
+   но компилятор не сворачивает [and] на константах. *)
+let partial i =
+  tuple
+    (range (fun j ->
+       if j < i
+       then "false"
+       else Printf.sprintf "(%s and %s)" (bit i "b") (bit (j - i) "a")))
+;;
+
 let defs =
   let fa =
     Printf.sprintf
@@ -113,7 +131,33 @@ let defs =
   let le = Printf.sprintf "let %s a b = not (%s b a) in" le_name lt_name in
   let gt = Printf.sprintf "let %s a b = %s b a in" gt_name lt_name in
   let ge = Printf.sprintf "let %s a b = not (%s a b) in" ge_name lt_name in
-  [ fa; notb; addc; add; sub; eq; lt; le; gt; ge ]
+  (* Умножение — «сдвиг и сложение» без сдвига: 32 частичных произведения
+     развёрнуты в {v partial}, складываются уже готовым [add]. Сдвиг не нужен
+     как отдельная операция, потому что [a << i] получается ещё на этапе
+     генерации — бит [j] читается из [a] по индексу [j - i]. Сложение
+     ассоциативно, а все переносы отбрасываются на 32-м разряде, поэтому
+     порядок суммирования безразличен и результат берётся по модулю 2^32.
+
+     Сумма набирается вложенными вызовами, а не списком аргументов: [add]
+     двухаргументный, и третьим аргументом пришёл бы не операнд сложения, а
+     уже готовый результат — число, то есть кортеж из 32 Church-буллов. К
+     результату применился бы тогда сам кортеж, а не функция [add]. *)
+  let parts =
+    List.init width (fun i -> Printf.sprintf "let %s = %s in" (part_name i) (partial i))
+  in
+  let rec sum i acc =
+    if i = width - 1
+    then Printf.sprintf "%s %s %s" add_name acc (part_name i)
+    else sum (i + 1) (Printf.sprintf "(%s %s %s)" add_name acc (part_name i))
+  in
+  let mul =
+    Printf.sprintf
+      "let %s a b = %s %s in"
+      mul_name
+      (String.concat " " parts)
+      (sum 1 (part_name 0))
+  in
+  [ fa; notb; addc; add; sub; eq; lt; le; gt; ge; mul ]
 ;;
 
 let source = String.concat "\n" defs ^ "\n"

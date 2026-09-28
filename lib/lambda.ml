@@ -129,17 +129,17 @@ and compile_tuple (tuple : expr list) : expr =
   | expr :: rest -> Lambd ("f", App (App (Var "f", expr), compile_tuple rest))
 
 and bin_to_expr (op : bin_op) (a : expr) (b : expr) : expr =
-  (* [+, -, =, <, <=, >, >=] считаются прелюдией на битах, остаются
-     примитивы [*, /]: их разбирает [Interpreter.apply_prim], но операнды он
-     ждёт машинными [VInt], а не кортежами из Church-буллов. *)
+  (* [+, -, *, =, <, <=, >, >=] считаются прелюдией на битах, остаётся
+     примитив [/]: его разбирает [Interpreter.apply_prim], но операнды он ждёт
+     машинными [VInt], а не кортежами из Church-буллов. *)
   let prim (name : string) : expr = App (App (Ast.Var name, a), b) in
   match op with
   | Add -> prim Prelude.add_name
   | Sub -> prim Prelude.sub_name
+  | Mult -> prim Prelude.mul_name
+  | Div -> prim "/"
   | Eq -> prim Prelude.eq_name
   | Neq -> un_to_expr Not (prim Prelude.eq_name)
-  | Mult -> prim "*"
-  | Div -> prim "/"
   | Lt -> prim Prelude.lt_name
   | Le -> prim Prelude.le_name
   | Gt -> prim Prelude.gt_name

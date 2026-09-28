@@ -7,6 +7,11 @@ val width : int
 val add_name : string
 
 val sub_name : string
+
+(** Умножение: 32 частичных произведений [a << i], обрезанных по биту [i]
+    второго операнда, складываются в цепочку [add]. *)
+val mul_name : string
+
 val eq_name : string
 
 (** Сравнения: [a < b] — знаковое, [a <= b] и [a >= b] выведены через [lt],
