@@ -26,10 +26,7 @@ let rec type_term_to_string term tp =
      | TUnit -> "unit"
      | TInt ->
        let raw =
-         List.fold_left
-           (fun acc i -> acc lor (bit term i lsl i))
-           0
-           (List.init 32 Fun.id)
+         List.fold_left (fun acc i -> acc lor (bit term i lsl i)) 0 (List.init 32 Fun.id)
        in
        if raw land 0x8000_0000 = 0
        then string_of_int raw
@@ -55,5 +52,28 @@ let rec type_term_to_string term tp =
        "(" ^ helper 0 tuple ^ ")"
      | RecT _ -> "μχ.τ"
      | Scheme _ -> "∀χ.τ"
-     | _ -> failwith "Util: Should never reach here!")
+     | _ -> failwith ("Util: Should never reach here!" ^ ml_type_to_string tp))
+
+and ml_type_to_string = function
+  | TExc -> "Exc"
+  | TUnit -> "Unit"
+  | TInt -> "Int"
+  | TBool -> "Bool"
+  | TArrow (l, r) -> "(" ^ ml_type_to_string l ^ " -> " ^ ml_type_to_string r ^ ")"
+  | TVar i -> "t" ^ string_of_int i
+  | TVarS s -> s
+  | RecT (name, t) -> "μ" ^ name ^ "." ^ ml_type_to_string t
+  | TTuple tuple | TReqTuple tuple ->
+    let rec helper = function
+      | first :: second :: rest ->
+        ml_type_to_string first ^ " * " ^ helper (second :: rest)
+      | tp :: [] -> ml_type_to_string tp
+      | _ -> ""
+    in
+    "(" ^ helper tuple ^ ")"
+  | Scheme (l, t) ->
+    "∀"
+    ^ String.concat "," (List.map (fun x -> ml_type_to_string x) l)
+    ^ "."
+    ^ ml_type_to_string t
 ;;
