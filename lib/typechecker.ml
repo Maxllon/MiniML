@@ -80,6 +80,13 @@ let rec unify = function
       | _ :: _, [] -> failwith "Tuple size match error"
     in
     unify (check_size (l, r) @ rest)
+  | (TReqTuple l, TReqTuple r) :: rest ->
+    let rec check_size ((l, r) : ml_type list * ml_type list) : (ml_type * ml_type) list =
+      match l, r with
+      | l :: lrest, r :: rrest -> (l, r) :: check_size (lrest, rrest)
+      | [], _ | _, [] -> []
+    in
+    unify (check_size (l, r) @ rest)
   (*danger*)
   | (TExc, _) :: rest | (_, TExc) :: rest -> unify rest
   | (ltype, rtype) :: _ ->
