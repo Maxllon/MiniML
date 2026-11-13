@@ -59,7 +59,7 @@ let gen_var = gen_identifier |> Gen.map (fun s -> Ast.Var s)
 
 let atom_expr_gen =
   Gen.oneof
-    [ Gen.map (fun n -> Ast.Int n) Gen.small_nat
+    [ Gen.map (fun n -> Ast.Int n) (Gen.int_range 0 99)
     ; Gen.map (fun var -> Ast.Var var) gen_identifier
     ; Gen.map (fun _bool -> Ast.Bool _bool) Gen.bool
     ]
