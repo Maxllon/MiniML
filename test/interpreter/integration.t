@@ -80,7 +80,7 @@ Let rec with syntactic sugar - factorial using lambda-wrapped if for strict CBV
 
 Let rec with lif (lazy if) - factorial, both branches are lazy
 
-  $ echo 'let rec fact = \n.lif n=0 then 1 else n*fact(n-1) in fact 5' | dune exec miniML
+  $ printf '%s\n' 'let rec fact = \n.lif n=0 then 1 else n*fact(n-1) in fact 5' | dune exec miniML
   miniML REPL
   > 120 : Int
   > 
