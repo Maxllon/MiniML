@@ -8,5 +8,15 @@
  (preprocess
   (pps bisect_ppx)))
 
+(executable
+ (public_name mlc)
+ (name Compile)
+ (modules Compile)
+ (libraries miniML)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps bisect_ppx)))
+
 (cram
  (deps ./REPL.exe %{bin:REPL}))

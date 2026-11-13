@@ -17,7 +17,21 @@ type un_op =
   | Not
   | Neg
 
+type ml_type =
+  | TExc
+  | TUnit
+  | TInt
+  | TBool
+  | TArrow of ml_type * ml_type
+  | TVar of int
+  | TVarS of string
+  | TTuple of ml_type list
+  | TReqTuple of ml_type list * int
+  | RecT of string * ml_type
+  | Scheme of ml_type list * ml_type
+
 type expr =
+  | Unit
   | Var of string
   | Int of int
   | Bool of bool
@@ -28,5 +42,9 @@ type expr =
   | If of expr * expr * expr
   | Bin_op of bin_op * expr * expr
   | Un_op of un_op * expr
+  | Tuple of expr list
+  | Constr of string * int * int * ml_type
+  | Case of expr * (expr * string * expr) list
+  | Try of expr * expr
 
 val expr_to_string : expr -> string

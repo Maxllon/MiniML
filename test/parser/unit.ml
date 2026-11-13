@@ -92,15 +92,32 @@ let test_let () =
     "let rec inf loop"
     (Let_rec ("x", Bin_op (Add, Var "x", Int 1), Var "x"))
     "let rec x = x + 1 in x";
+  test_parse
+    "let with arg sugar"
+    (Let ("f", Lambd ("x", Bin_op (Add, Var "x", Int 1)), App (Var "f", Int 5)))
+    "let f x = x+1 in f 5";
+  test_parse
+    "let rec with arg sugar"
+    (Let_rec
+       ( "fact"
+       , Lambd
+           ( "n"
+           , If
+               ( Bin_op (Eq, Var "n", Int 0)
+               , Int 1
+               , Bin_op (Mult, Var "n", App (Var "fact", Bin_op (Sub, Var "n", Int 1))) )
+           )
+       , Var "fact" ))
+    "let rec fact n = if n=0 then 1 else n*fact(n-1) in fact";
   ()
 ;;
 
 let test_fun () =
-  test_parse "basic fun expr" (Lambd ("x", Var "x")) "\\x -> x";
+  test_parse "basic fun expr" (Lambd ("x", Var "x")) "\\x.x";
   test_parse
     "multy vars"
     (Lambd ("x", Lambd ("y", Bin_op (Add, Var "x", Var "y"))))
-    "\\x y -> (x+y)";
+    "\\x y.x+y";
   ()
 ;;
 
@@ -117,6 +134,98 @@ let test_app () =
   ()
 ;;
 
+let test_case () =
+  test_parse
+    "simple case"
+    (Let
+       ( "t1"
+       , Constr ("t1", 0, 2, TArrow (TInt, RecT ("X", TInt)))
+       , Let
+           ( "t2"
+           , Constr ("t2", 1, 2, TArrow (TInt, RecT ("X", TInt)))
+           , Case (Var "a", [ Var "t1", "x", Int 1; Var "t2", "y", Int 2 ]) ) ))
+    "type X = t1 of Int | t2 of Int in case a of t1 x => 1 | t2 y => 2";
+  test_parse
+    "case branches sorted to canonical order"
+    (Let
+       ( "t1"
+       , Constr ("t1", 0, 2, TArrow (TInt, RecT ("X", TInt)))
+       , Let
+           ( "t2"
+           , Constr ("t2", 1, 2, TArrow (TInt, RecT ("X", TInt)))
+           , Case (Var "a", [ Var "t1", "x", Int 1; Var "t2", "y", Int 2 ]) ) ))
+    "type X = t1 of Int | t2 of Int in case a of t2 y => 2 | t1 x => 1";
+  test_parse_error
+    "case not exhaustive"
+    "type X = t1 of Int | t2 of Int in case a of t1 x => 1";
+  test_parse_error
+    "case unknown constructor"
+    "type X = t1 of Int in case a of t1 x => 1 | foo y => 2";
+  test_parse_error "case without type decl" "case a of t1 x => 1";
+  test_parse_error "case without of" "type X = t1 of Int in case a t1 x => 1";
+  test_parse_error "branch without var" "type X = t1 of Int in case a of t1 => 1";
+  test_parse_error "branch without arrow" "type X = t1 of Int in case a of t1 x 1";
+  ()
+;;
+
+let test_typedecl () =
+  test_parse
+    "single constructor"
+    (Let ("t1", Constr ("t1", 0, 1, TArrow (TInt, RecT ("X", TInt))), Var "t1"))
+    "type X = t1 of Int in t1";
+  test_parse
+    "multiple constructors"
+    (Let
+       ( "t1"
+       , Constr ("t1", 0, 2, TArrow (TInt, RecT ("X", TInt)))
+       , Let ("t2", Constr ("t2", 1, 2, TArrow (TBool, RecT ("X", TBool))), Var "t1") ))
+    "type X = t1 of Int | t2 of Bool in t1";
+  test_parse
+    "tuple and arrow precedence"
+    (Let
+       ( "t1"
+       , Constr
+           ( "t1"
+           , 0
+           , 1
+           , TArrow
+               ( TArrow (TTuple [ TInt; TBool ], RecT ("X", TVarS "X"))
+               , RecT ("X", TArrow (TTuple [ TInt; TBool ], TVarS "X")) ) )
+       , Var "t1" ))
+    "type X = t1 of Int * Bool -> X in t1";
+  test_parse
+    "recursive reference in payload"
+    (Let
+       ( "t1"
+       , Constr ("t1", 0, 1, TArrow (RecT ("X", TVarS "X"), RecT ("X", TVarS "X")))
+       , Var "t1" ))
+    "type X = t1 of X in t1";
+  test_parse
+    "parens in type"
+    (Let
+       ( "t1"
+       , Constr
+           ("t1", 0, 1, TArrow (TArrow (TInt, TBool), RecT ("X", TArrow (TInt, TBool))))
+       , Var "t1" ))
+    "type X = t1 of (Int -> Bool) in t1";
+  test_parse
+    "recursive tuple payload"
+    (Let
+       ( "val"
+       , Constr
+           ( "val"
+           , 0
+           , 1
+           , TArrow
+               ( TTuple [ TInt; RecT ("a", TVarS "a") ]
+               , RecT ("a", TTuple [ TInt; TVarS "a" ]) ) )
+       , Var "val" ))
+    "type a = val of Int * a in val";
+  test_parse_error "type without in" "type X = t1 of Int t1";
+  test_parse_error "unknown type in payload" "type X = t1 of Y in t1";
+  ()
+;;
+
 let suite =
   [ "precedence", `Quick, test_precedence
   ; "unary", `Quick, test_un
@@ -125,6 +234,8 @@ let suite =
   ; "fun", `Quick, test_fun
   ; "atom", `Quick, test_atom
   ; "app", `Quick, test_app
+  ; "case", `Quick, test_case
+  ; "typedecl", `Quick, test_typedecl
   ]
 ;;
 

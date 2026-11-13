@@ -1,10 +1,16 @@
 open Ast
 
+type var_type =
+  | Idx of int
+  | Name of string
+
 type term =
-  | Var of string
-  | Fun of string * term
+  | Var of var_type
+  | Fun of term
   | App of term * term
   | Int of int
+  | Error
+  | Try of term * term
 
 val ltrue : term
 val lfalse : term

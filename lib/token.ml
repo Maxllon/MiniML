@@ -1,12 +1,26 @@
 type keyword =
+  | TRY
+  | WITH
   | LET
   | REC
   | IF
+  | LIF
   | THEN
   | ELSE
   | IN
   | LAMBD
+  | DOT
+  | COMMA
+  | BTInt
+  | BTBool
+  | BTUnit
+  | CASE
+  | OF
+  | BIGARROW
+  | PIPE
+  | TYPE
   | ARROW
+  | UNIT
 
 type bracket =
   | L_PAREN
@@ -54,17 +68,31 @@ let isIdent = function
 ;;
 
 let isOp c = String.contains "\\+-/*=!><&|^" c
-let isBracket c = String.contains "()" c
+let isBracket c = String.contains "().," c
 
 let kwFromString = function
   | "let" -> Some LET
   | "rec" -> Some REC
   | "if" -> Some IF
+  | "lif" -> Some LIF
   | "then" -> Some THEN
   | "else" -> Some ELSE
+  | "unit" -> Some UNIT
   | "in" -> Some IN
-  | "\\" -> Some LAMBD
+  | "Int" -> Some BTInt
+  | "Bool" -> Some BTBool
+  | "Unit" -> Some BTUnit
+  | "case" -> Some CASE
+  | "of" -> Some OF
+  | "=>" -> Some BIGARROW
+  | "|" -> Some PIPE
+  | "type" -> Some TYPE
+  | "try" -> Some TRY
+  | "with" -> Some WITH
   | "->" -> Some ARROW
+  | "\\" -> Some LAMBD
+  | "." -> Some DOT
+  | "," -> Some COMMA
   | _ -> None
 ;;
 
@@ -111,6 +139,8 @@ let parseBracket s =
   match s.[0] with
   | '(' -> 1, BRACKET L_PAREN
   | ')' -> 1, BRACKET R_PAREN
+  | '.' -> 1, KEYWORD DOT
+  | ',' -> 1, KEYWORD COMMA
   | _ -> 1, INVALID
 ;;
 
@@ -167,11 +197,25 @@ let tokenToString = function
   | KEYWORD LET -> "LET"
   | KEYWORD REC -> "REC"
   | KEYWORD IF -> "IF"
+  | KEYWORD LIF -> "LIF"
   | KEYWORD THEN -> "THEN"
   | KEYWORD ELSE -> "ELSE"
   | KEYWORD IN -> "IN"
   | KEYWORD LAMBD -> "LAMBD"
+  | KEYWORD DOT -> "DOT"
+  | KEYWORD COMMA -> "COMMA"
+  | KEYWORD BTInt -> "Int"
+  | KEYWORD BTBool -> "Bool"
+  | KEYWORD BTUnit -> "Unit"
+  | KEYWORD CASE -> "CASE"
+  | KEYWORD OF -> "OF"
+  | KEYWORD BIGARROW -> "BIGARROW"
+  | KEYWORD PIPE -> "PIPE"
+  | KEYWORD TYPE -> "TYPE"
   | KEYWORD ARROW -> "ARROW"
+  | KEYWORD UNIT -> "UNIT"
+  | KEYWORD TRY -> "TRY"
+  | KEYWORD WITH -> "WITH"
   | BOOLEAN true -> "TRUE"
   | BOOLEAN false -> "FALSE"
   | OPERATOR PLUS -> "PLUS"

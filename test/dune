@@ -23,6 +23,14 @@
    (backend bisect_ppx))))
 
 (subdir
+ typechecker
+ (test
+  (name unit)
+  (libraries miniML alcotest)
+  (instrumentation
+   (backend bisect_ppx))))
+
+(subdir
  interpreter
  (cram
   (deps %{bin:miniML})))

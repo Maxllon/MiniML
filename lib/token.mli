@@ -1,12 +1,26 @@
 type keyword =
+  | TRY
+  | WITH
   | LET
   | REC
   | IF
+  | LIF
   | THEN
   | ELSE
   | IN
   | LAMBD
+  | DOT
+  | COMMA
+  | BTInt
+  | BTBool
+  | BTUnit
+  | CASE
+  | OF
+  | BIGARROW
+  | PIPE
+  | TYPE
   | ARROW
+  | UNIT
 
 type bracket =
   | L_PAREN

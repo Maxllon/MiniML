@@ -1,0 +1,180 @@
+% Данный файл распространяется под лицензией CC BY 4.0. Текст лицензии размещён на https://creativecommons.org/licenses/by/4.0/
+% (c) Кафедра системного программирования, 2025
+
+\documentclass[a4paper]{article}
+
+\usepackage[a4paper, top=8mm, bottom=8mm, left=8mm, right=8mm]{geometry}
+
+\usepackage{polyglossia}
+\setdefaultlanguage[babelshorthands=true]{russian}
+\setotherlanguage{english}
+
+\usepackage{fontspec}
+\setmainfont{FreeSerif}
+\newfontfamily{\russianfonttt}[Scale=0.7]{DejaVuSansMono}
+
+\usepackage[tiny, compact]{titlesec}
+
+\usepackage{titling}
+\setlength{\droptitle}{-1cm}
+\pretitle{\begin{center}\begin{bfseries}\Large}
+\posttitle{\par\end{bfseries}\end{center}}
+\preauthor{\begin{center}\normalsize}
+\postauthor{\par\end{center}\vspace{-1.8cm}}
+
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{csquotes}
+\usepackage{upquote}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{Разработка интерпретатора языка MiniML на OCaml}
+
+\author{Белимов Максим Андреевич}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{flushright}
+    Группа: \emph{26Б71}
+
+    Кафедра: \emph{Кафедра системного программирования}
+
+    Научный руководитель: \emph{Смирнов Кирилл Константинович}
+    
+    Консультант: \emph{---}
+    
+    Номер семестра практики: \emph{2}
+\end{flushright}
+
+
+\section{Постановка задачи}
+
+В рамках курсовой работы требовалось реализовать интерпретатор языка miniML — функционального языка семейства ML, поддерживающего целочисленные и булевы выражения, переменные, условный оператор, функции с замыканиями (символ \texttt{\textbackslash} для лямбда-абстракции), рекурсивные определения (let rec) и синтаксический сахар для многоместных функций.
+
+\textbf{Цель работы} — углублённое изучение устройства функциональных языков программирования через практическую реализацию интерпретатора на OCaml.
+
+\section{Описание предлагаемого решения}
+
+Архитектура интерпретатора — конвейер из пяти компонентов: лексер → парсер → AST → компиляция в λ-исчисление → CBV-редуктор. Дополнительно реализована REPL-оболочка.
+
+\subsection{Лексический анализатор (лексер)}
+
+Лексер реализован как \textbf{детерминированный конечный автомат (ДКА)}. Функция \texttt{parseToken} возвращает пару (длина распознанной лексемы, токен). Поддерживаются токены: целые числа, булевы литералы, идентификаторы, ключевые слова (let, rec, in, if, then, else, \texttt{\textbackslash}, ->), операторы (арифметические, сравнения, логические, включая словесные эквиваленты and/or/xor/not), скобки, EOF и INVALID. Для обработки ошибок используется монада \texttt{Result}.
+
+\subsection{Синтаксический анализатор (парсер)}
+
+Парсер реализован методом \textbf{рекурсивного спуска}. Приоритеты операций заданы иерархией вызовов: let → fun → if → =,!= → || → \^{} → \&\& → <,<=,>,>= → +,- → *,/ → унарные → аппликация → атомы.
+
+Все бинарные операторы обрабатываются единообразно через обобщённую функцию \texttt{parse\_binary}, что даёт правую ассоциативность. Для неассоциативных операций (вычитание, деление) рекомендуется использовать скобки. Левая ассоциативность аппликации достигается итеративным сбором аргументов в цикле.
+
+Для обоснования корректности рекурсивного спуска вычислены FIRST-множества; все альтернативы для одного нетерминала имеют непересекающиеся FIRST-множества, что гарантирует отсутствие backtracking.
+
+\textbf{Формальная грамматика (BNF):}
+
+\begin{verbatim}
+<program>  ::= <expr>
+<expr>     ::= <let-expr>
+<let-expr> ::= "let" IDENT "=" <expr> "in" <expr>
+             | "let" "rec" IDENT "=" <expr> "in" <expr>
+             | <fun-expr>
+<fun-expr> ::= "\" IDENT+ "->" <expr> | <if-expr>
+<if-expr>  ::= "if" <expr> "then" <expr> "else" <expr> | <eq-expr>
+<eq-expr>  ::= <or-expr> | <or-expr> ("=" | "!=") <eq-expr>
+<or-expr>  ::= <xor-expr> | <xor-expr> ("or" | "||") <or-expr>
+<xor-expr> ::= <and-expr> | <and-expr> ("xor" | "^") <xor-expr>
+<and-expr> ::= <comp-expr> | <comp-expr> ("and" | "&&") <and-expr>
+<comp-expr> ::= <add-expr> | <add-expr> ("<" | "<=" | ">" | ">=") <comp-expr>
+<add-expr> ::= <mul-expr> | <mul-expr> ("+" | "-") <add-expr>
+<mul-expr> ::= <unary-expr> | <unary-expr> ("*" | "/") <mul-expr>
+<unary-expr> ::= ("-" | "not" | "!") <unary-expr> | <app-expr>
+<app-expr> ::= <atom> <app-expr> | <atom>
+<atom>     ::= INTEGER | IDENT | "true" | "false" | "(" <expr> ")"
+\end{verbatim}
+
+Грамматика является LALR(1)-грамматикой: она не требует backtracking при анализе одним символом предпросмотра, что делает рекурсивный спуск корректным и эффективным.
+
+\subsection{Абстрактное синтаксическое дерево (AST)}
+
+AST представлено алгебраическим типом \texttt{expr} с конструкторами: Int, Bool, Var, Bin\_op (Add, Sub, Mult, Div, Eq, Neq, Lt, Le, Gt, Ge, And, Or, Xor), Un\_op (Not, Neg), If, Let, Let\_rec, Lambd, App.
+
+\subsection{Интерпретатор}
+
+Интерпретатор реализует \textbf{call-by-value} (энергичные вычисления) на основе редукции чистого λ-исчисления. AST компилируется в λ-термы (модуль \texttt{Lambda}), которые затем редуцируются (модуль \texttt{Interpreter}).
+
+\textbf{Представление λ-термов (тип \texttt{term}):}
+\begin{itemize}
+    \item \texttt{Var of string} — переменная;
+    \item \texttt{Fun of string * term} — λ-абстракция;
+    \item \texttt{App of term * term} — аппликация;
+    \item \texttt{Int of int} — целое число.
+\end{itemize}
+
+Булевы значения кодируются по Чёрчу: \texttt{ltrue = λx.λy.x}, \texttt{lfalse = λx.λy.y}.
+
+\textbf{Компиляция AST в λ-термы (\texttt{ast\_to\_term}):}
+\begin{itemize}
+    \item \textbf{Let} — свёртывается в аппликацию: \texttt{App (Fun (name, body), value)}.
+    \item \textbf{Let rec} — реализуется через Z-комбинатор неподвижной точки.
+    \item \textbf{If} — церковское булево применяется к двум ветвям (then/else) и фиктивному аргументу.
+    \item \textbf{Логические операции} (\texttt{and}, \texttt{or}, \texttt{xor}, \texttt{not}) — выражаются через церковные булевы.
+    \item \textbf{Арифметика и сравнения} — \texttt{App (App (Var "op", a), b)}.
+\end{itemize}
+
+\textbf{CBV-редукция (модуль \texttt{Interpreter}):}
+\begin{itemize}
+    \item \texttt{subst} — capture-avoiding substitution (подстановка с избеганием захвата переменных).
+    \item \texttt{try\_std} — встроенные примитивы (сложение, вычитание, сравнение) реализованы сопоставлением с образцом.
+    \item \texttt{beta\_step} — один шаг CBV-редукции: редуцируется аргумент, затем функция; если функция — λ-абстракция, выполняется подстановка.
+    \item \texttt{beta\_reduce} — итеративное применение \texttt{beta\_step} до нормальной формы.
+\end{itemize}
+
+В отличие от классического подхода с явным окружением и замыканиями, данный метод транслирует программу в чистое λ-исчисление, где все конструкции языка выражаются через λ-абстракцию, аппликацию и переменные. Это устраняет необходимость в типах \texttt{VClosure}, \texttt{VRecClosure}, \texttt{VUninitialized} и монадической обработке ошибок на этапе интерпретации — выражения с некорректными типами просто не редуцируются до нормальной формы.
+
+\subsection{REPL-оболочка}
+
+REPL поддерживает ввод выражений с немедленным вычислением, мета-команды (:h, :q, :c, :load, :next, :compile), пошаговую редукцию с отслеживанием состояния, обработку Ctrl+D. Команда \texttt{:load} компилирует код в λ-терм и выводит нулевой шаг; \texttt{:next} выполняет один шаг бета-редукции; \texttt{:compile} выводит λ-терм без редукции.
+
+\section{Апробация и эксперименты}
+
+Реализовано трёхуровневое тестирование:
+
+\begin{enumerate}
+    \item \textbf{Модульное тестирование (Alcotest):} тесты токенов (12 сценариев), лексера (2 сценария), парсера (7 групп, 20+ тестов) — включая приоритеты, ассоциативность, унарные операторы, let, функции, аппликацию.
+    
+    \item \textbf{Property-based тестирование (QCheck):} проверка roundtrip-свойства $\forall\,\mathit{ast}:\;\texttt{parse}(\texttt{tokenize}(\texttt{expr\_to\_string}(\mathit{ast}))) = \texttt{Ok}(\mathit{ast})$ на 30\,000 случайных AST (глубины 3, 5, 10) с фиксированным seed.
+    
+    \item \textbf{Интеграционные тесты (cram):} 30 сценариев работы REPL, включая арифметику, let, функции, логику, сравнения, if, унарные операции, обработку ошибок, мета-команды.
+\end{enumerate}
+
+\textbf{Покрытие кода} (bisect\_ppx): 83\% библиотечных модулей.
+
+\textbf{CI (GitHub Actions):} автоматическая сборка, тестирование, проверка форматирования при каждом push и pull request.
+
+\section{Заключение}
+
+\textbf{Основные результаты:}
+\begin{itemize}
+    \item Реализован лексер (ДКА) для всех токенов miniML.
+    \item Разработан парсер рекурсивного спуска с иерархией приоритетов и FIRST-множествами, синтаксическим сахаром для многоместных функций.
+    \item Реализован интерпретатор на основе компиляции AST в чистое λ-исчисление с CBV-редукцией, capture-avoiding substitution и Z-комбинатором для let rec.
+    \item Создана трёхуровневая система тестирования (Alcotest, QCheck, cram); покрытие 83\%.
+    \item Настроена CI/CD на GitHub Actions.
+\end{itemize}
+
+\textbf{Теоретическая значимость:} демонстрация применения конечных автоматов, рекурсивного спуска, FIRST-множеств, компиляции AST в λ-исчисление, CBV-редукции, кодирования Чёрча и подстановки с избеганием захвата.
+
+\textbf{Ограничения:} динамическая типизация, отсутствие оптимизации хвостовой рекурсии, ограниченная диагностика ошибок, фиксированный набор типов (только int и bool), отсутствие редукции под λ (CBV-стратегия не редуцирует под абстракцией).
+
+\textbf{Репозиторий:} \url{https://github.com/Maxllon/MiniML}
+
+\begin{thebibliography}{9}
+    \bibitem{dragon} Ахо А., Лам М., Сети Р., Ульман Д. {\itshape Компиляторы: принципы, технологии и инструментарий}. 2-е изд. М.: Вильямс, 2008. 1184~с.
+    \bibitem{tapl} Пирс Б. {\itshape Типы в языках программирования}. М.: ДМК Пресс, 2012. 656~с.
+\end{thebibliography}
+
+\end{document}
