@@ -12,6 +12,12 @@ let get_un_type = function
 ;;
 
 let counter = ref (-1)
+let counter2 = ref (-1)
+
+let fresh_id () =
+  counter2 := !counter2 + 1;
+  !counter2
+;;
 
 let fresh_var () =
   counter := !counter + 1;
@@ -24,8 +30,21 @@ let rec subst_c t1 t2 =
     | TArrow (l, r) -> TArrow (subst_c t1 t2 l, subst_c t1 t2 r)
     | RecT (name, t) -> RecT (name, subst_c t1 t2 t)
     | TTuple l -> TTuple (l |> List.concat_map (fun x -> [ subst_c t1 t2 x ]))
-    | TReqTuple l -> TReqTuple (l |> List.concat_map (fun x -> [ subst_c t1 t2 x ]))
+    | TReqTuple (l, id) ->
+      TReqTuple (l |> List.concat_map (fun x -> [ subst_c t1 t2 x ]), id)
     | Scheme (l, t) -> Scheme (l, subst_c t1 t2 t)
+    | t -> t)
+;;
+
+let rec subst_c_tup t1 t2 =
+  (function
+    | TReqTuple (_, id) when id = t1 -> t2
+    | TArrow (l, r) -> TArrow (subst_c_tup t1 t2 l, subst_c_tup t1 t2 r)
+    | RecT (name, t) -> RecT (name, subst_c_tup t1 t2 t)
+    | TTuple l -> TTuple (l |> List.concat_map (fun x -> [ subst_c_tup t1 t2 x ]))
+    | TReqTuple (l, id) ->
+      TReqTuple (l |> List.concat_map (fun x -> [ subst_c_tup t1 t2 x ]), id)
+    | Scheme (l, t) -> Scheme (l, subst_c_tup t1 t2 t)
     | t -> t)
 ;;
 
@@ -72,7 +91,7 @@ let rec unify = function
   | (TArrow (l1, l2), TArrow (r1, r2)) :: rest -> unify ((l1, r1) :: (l2, r2) :: rest)
   | (RecT (l, _), RecT (r, _)) :: rest when l = r -> unify rest
   (*danger*)
-  | (TReqTuple l, TTuple r) :: rest | (TTuple r, TReqTuple l) :: rest ->
+  | (TReqTuple (l, _), TTuple r) :: rest | (TTuple r, TReqTuple (l, _)) :: rest ->
     let rec check_size ((l, r) : ml_type list * ml_type list) : (ml_type * ml_type) list =
       match l, r with
       | l :: lrest, r :: rrest -> (l, r) :: check_size (lrest, rrest)
@@ -80,11 +99,22 @@ let rec unify = function
       | _ :: _, [] -> failwith "Tuple size match error"
     in
     unify (check_size (l, r) @ rest)
-  | (TReqTuple l, TReqTuple r) :: rest ->
+  | (TReqTuple (l, lid), TReqTuple (r, rid)) :: rest ->
     let rec check_size ((l, r) : ml_type list * ml_type list) : (ml_type * ml_type) list =
       match l, r with
       | l :: lrest, r :: rrest -> (l, r) :: check_size (lrest, rrest)
-      | [], _ | _, [] -> []
+      | [], _ ->
+        List.map
+          (fun (a, b) ->
+             ( subst_c_tup lid (TReqTuple (r, rid)) a
+             , subst_c_tup lid (TReqTuple (r, rid)) b ))
+          rest
+      | _, [] ->
+        List.map
+          (fun (a, b) ->
+             ( subst_c_tup rid (TReqTuple (l, lid)) a
+             , subst_c_tup rid (TReqTuple (l, lid)) b ))
+          rest
     in
     unify (check_size (l, r) @ rest)
   (*danger*)
@@ -103,7 +133,7 @@ and ml_type_to_string = function
   | TVar i -> "t" ^ string_of_int i
   | TVarS s -> s
   | RecT (name, t) -> "μ" ^ name ^ "." ^ ml_type_to_string t
-  | TTuple tuple | TReqTuple tuple ->
+  | TTuple tuple | TReqTuple (tuple, _) ->
     let rec helper = function
       | first :: second :: rest ->
         ml_type_to_string first ^ " * " ^ helper (second :: rest)
@@ -124,7 +154,7 @@ let generalize (ctx : (string * ml_type) list) (tp : ml_type) =
       | TVar i -> [ i ]
       | TArrow (t1, t2) -> helper t1 @ helper t2
       | RecT (_, t) -> helper t
-      | TTuple l | TReqTuple l -> l |> List.concat_map (fun x -> helper x)
+      | TTuple l | TReqTuple (l, _) -> l |> List.concat_map (fun x -> helper x)
       | _ -> []
     in
     List.sort_uniq compare (helper tp)
@@ -145,7 +175,7 @@ let rec set_equations (term : expr) (ctx : (string * ml_type) list)
   (*std*)
   | App (Var "nth", Int n) ->
     ( TArrow
-        ( TReqTuple (List.init (n + 1) (fun _ -> TVar (fresh_var ())))
+        ( TReqTuple (List.init (n + 1) (fun _ -> TVar (fresh_var ())), fresh_id ())
         , TVar (fresh_var () + n + 1) )
     , [] )
   (*std*)

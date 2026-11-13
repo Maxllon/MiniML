@@ -26,7 +26,7 @@ type ml_type =
   | TVar of int
   | TVarS of string
   | TTuple of ml_type list
-  | TReqTuple of ml_type list
+  | TReqTuple of ml_type list * int
   | RecT of string * ml_type
   | Scheme of ml_type list * ml_type
 

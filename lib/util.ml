@@ -63,7 +63,7 @@ and ml_type_to_string = function
   | TVar i -> "t" ^ string_of_int i
   | TVarS s -> s
   | RecT (name, t) -> "μ" ^ name ^ "." ^ ml_type_to_string t
-  | TTuple tuple | TReqTuple tuple ->
+  | TTuple tuple | TReqTuple (tuple, _) ->
     let rec helper = function
       | first :: second :: rest ->
         ml_type_to_string first ^ " * " ^ helper (second :: rest)
